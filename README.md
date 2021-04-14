@@ -2,10 +2,10 @@
 
 **Collection of PHP Traits for designing object-oriented frameworks.**
 
-![Build](https://github.com/x-systems/phlex-core/workflows/Unit%20Testing/badge.svg)
+[![Unit Testing](https://github.com/x-systems/phlex-core/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/x-systems/phlex-core/actions/workflows/unit-tests.yml)
 [![CodeCov](https://codecov.io/gh/x-systems/phlex-core/branch/develop/graph/badge.svg)](https://codecov.io/gh/x-systems/phlex-core)
-[![GitHub release](https://img.shields.io/github/release/x-systems/phlex-core.svg)](CHANGELOG.md)
-[![Code Climate](https://codeclimate.com/github/x-systems/phlex-core/badges/gpa.svg)](https://codeclimate.com/github/x-systems/phlex-core)
+[![GitHub release](https://img.shields.io/github/release/x-systems/phlex-core.svg)](https://github.com/x-systems/phlex-core/releases)
+[![PHPStan enabled](https://img.shields.io/badge/PHPStan-enabled-brightgreen.svg?style=flat)](https://phpstan.org)
 
 
 Agile Core was created for [Agile Data](https://github.com/atk4/data) and [Agile UI](https://github.com/atk4/ui), but can be used in any other framework too. You will mostly find PHP Traits here, that add functionality into your objects such as:
