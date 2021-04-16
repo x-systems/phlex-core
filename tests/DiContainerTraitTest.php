@@ -73,6 +73,17 @@ class DiContainerTraitTest extends AtkPhpunit\TestCase
         $m = new FactoryDiMock2();
         $m->setDefaults([], true);
     }
+
+    public function testPropertySetter()
+    {
+        $m = new FactoryDiMock2();
+
+        $m->setDefaults(['testSetter' => 'value']);
+        $this->assertSame([$m->testSetter], ['correct_value']);
+
+        $m->setDefaults(['testSetter' => 'new_value'], true);
+        $this->assertSame([$m->testSetter], ['correct_value']);
+    }
 }
 
 // @codingStandardsIgnoreStart
@@ -83,5 +94,13 @@ class FactoryDiMock2
     public $a = 'AAA';
     public $b = 'BBB';
     public $c;
+    public $testSetter;
+
+    public function setTestSetter($value)
+    {
+        $this->testSetter = 'correct_' . $value;
+
+        return $this;
+    }
 }
 // @codingStandardsIgnoreEnd

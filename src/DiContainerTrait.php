@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Phlex\Core;
 
+use Illuminate\Support\Str;
+
 /**
  * A class with this trait will have setDefaults() method that can
  * be passed list of default properties.
@@ -49,32 +51,33 @@ trait DiContainerTrait
      */
     public function setDefaults(array $properties, bool $passively = false)
     {
-        foreach ($properties as $key => $val) {
-            if (property_exists($this, $key)) {
-                if ($passively && $this->{$key} !== null) {
-                    continue;
-                }
+        foreach ($properties as $name => $val) {
+        	$setterName = 'set' . Str::studly($name);
+        	$setterExists = method_exists($this, $setterName) && $setterName !== 'setDefaults';
+        	
+        	if (!property_exists($this, $name) && !$setterExists) {
+            	throw (new Exception('Property for specified object is not defined'))
+	            	->addMoreInfo('object', $this)
+	            	->addMoreInfo('property', $name)
+	            	->addMoreInfo('value', $val);
+            }
+            
+            $origValue = $this->{$name} ?? null;
+            
+            if ($passively && $origValue !== null) {
+                continue;
+            }
 
-                if ($val !== null) {
-                    $this->{$key} = $val;
+            if ($val !== null) {
+                if ($setterExists) {
+                    $this->{$setterName}($val);
+                } else {
+                    $this->{$name} = $val;
                 }
-            } else {
-                $this->setMissingProperty($key, $val);
             }
         }
 
         return $this;
-    }
-
-    /**
-     * @param mixed $value
-     */
-    protected function setMissingProperty(string $propertyName, $value): void
-    {
-        throw (new Exception('Property for specified object is not defined'))
-            ->addMoreInfo('object', $this)
-            ->addMoreInfo('property', $propertyName)
-            ->addMoreInfo('value', $value);
     }
 
     /**
