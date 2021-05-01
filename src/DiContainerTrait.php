@@ -34,6 +34,8 @@ use Illuminate\Support\Str;
  */
 trait DiContainerTrait
 {
+    use Hintable\StaticPropNameTrait;
+
     /**
      * Check this property to see if trait is present in the object.
      *
@@ -52,18 +54,18 @@ trait DiContainerTrait
     public function setDefaults(array $properties, bool $passively = false)
     {
         foreach ($properties as $name => $val) {
-        	$setterName = 'set' . Str::studly($name);
-        	$setterExists = method_exists($this, $setterName) && $setterName !== 'setDefaults';
-        	
-        	if (!property_exists($this, $name) && !$setterExists) {
-            	throw (new Exception('Property for specified object is not defined'))
-	            	->addMoreInfo('object', $this)
-	            	->addMoreInfo('property', $name)
-	            	->addMoreInfo('value', $val);
+            $setterName = 'set' . Str::studly($name);
+            $setterExists = method_exists($this, $setterName) && $setterName !== 'setDefaults';
+
+            if (!property_exists($this, $name) && !$setterExists) {
+                throw (new Exception('Property for specified object is not defined'))
+                    ->addMoreInfo('object', $this)
+                    ->addMoreInfo('property', $name)
+                    ->addMoreInfo('value', $val);
             }
-            
+
             $origValue = $this->{$name} ?? null;
-            
+
             if ($passively && $origValue !== null) {
                 continue;
             }

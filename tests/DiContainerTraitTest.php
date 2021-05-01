@@ -7,6 +7,7 @@ namespace Phlex\Core\Tests;
 use Phlex\Core\AtkPhpunit;
 use Phlex\Core\DiContainerTrait;
 use Phlex\Core\Exception;
+use Phlex\Core\Hintable\StaticPropNameTrait;
 
 /**
  * @coversDefaultClass \Phlex\Core\DiContainerTrait
@@ -74,6 +75,13 @@ class DiContainerTraitTest extends AtkPhpunit\TestCase
         $m->setDefaults([], true);
     }
 
+    public function testInstanceOfBeforeConstructor()
+    {
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Seed class is not a subtype of static class');
+        FactoryDiMockConstructorMustNeverBeCalled2::fromSeed([FactoryDiMockConstructorMustNeverBeCalled::class]);
+    }
+
     public function testPropertySetter()
     {
         $m = new FactoryDiMock2();
@@ -83,6 +91,19 @@ class DiContainerTraitTest extends AtkPhpunit\TestCase
 
         $m->setDefaults(['testSetter' => 'new_value'], true);
         $this->assertSame([$m->testSetter], ['correct_value']);
+    }
+
+    public function testHintablePropName()
+    {
+        $this->assertSame('u', get_class(new class() {
+            use StaticPropNameTrait;
+
+            /** @var int */
+            public $u;
+        })::propName()->u);
+
+        $this->assertSame('a', FactoryDiMock2::propName()->a);
+        $this->assertSame('undefined', FactoryDiMock2::propName()->undefined); // @phpstan-ignore-line
     }
 }
 
@@ -102,5 +123,18 @@ class FactoryDiMock2
 
         return $this;
     }
+}
+
+class FactoryDiMockConstructorMustNeverBeCalled
+{
+    public function __construct()
+    {
+        throw new \Error('Contructor must never be called');
+    }
+}
+
+class FactoryDiMockConstructorMustNeverBeCalled2 extends FactoryDiMockConstructorMustNeverBeCalled
+{
+    use DiContainerTrait;
 }
 // @codingStandardsIgnoreEnd
