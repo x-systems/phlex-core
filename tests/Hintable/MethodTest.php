@@ -6,7 +6,7 @@ namespace Phlex\Core\Tests\Hintable;
 
 use Phlex\Core\AtkPhpunit;
 use Phlex\Core\Exception;
-use Phlex\Hintable\Method;
+use Phlex\Core\Hintable\Method;
 
 /**
  * @coversDefaultClass \Phlex\Hintable\MagicMethod

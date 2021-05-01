@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Phlex\Core\Tests\Hintable;
 
-use Phlex\Hintable\PropTrait;
+use Phlex\Core\Hintable\PropTrait;
 
 class PropMock
 {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Phlex\Core\Tests\Hintable;
 
-use Phlex\Hintable\MethodTrait;
+use Phlex\Core\Hintable\MethodTrait;
 
 class MethodMock
 {
