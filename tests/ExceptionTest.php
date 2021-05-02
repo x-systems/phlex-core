@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace Phlex\Core\Tests;
 
-use Phlex\Core\AtkPhpunit;
 use Phlex\Core\Exception;
 use Phlex\Core\TrackableTrait;
 
 /**
  * @coversDefaultClass \Phlex\Core\Exception
  */
-class ExceptionTest extends AtkPhpunit\TestCase
+class ExceptionTest extends \Phlex\Core\PHPUnit\TestCase
 {
     public function testBasic(): void
     {

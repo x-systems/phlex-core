@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Phlex\Core\Tests;
 
-use Phlex\Core\AtkPhpunit;
 use Phlex\Core\Exception;
 use Phlex\Core\HookBreaker;
 use Phlex\Core\HookTrait;
@@ -12,7 +11,7 @@ use Phlex\Core\HookTrait;
 /**
  * @coversDefaultClass \Phlex\Core\HookTrait
  */
-class HookTraitTest extends AtkPhpunit\TestCase
+class HookTraitTest extends \Phlex\Core\PHPUnit\TestCase
 {
     public function testArguments()
     {

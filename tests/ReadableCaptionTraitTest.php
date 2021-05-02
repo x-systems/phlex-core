@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace Phlex\Core\Tests;
 
-use Phlex\Core\AtkPhpunit;
 use Phlex\Core\ReadableCaptionTrait;
 
 /**
  * @coversDefaultClass \Phlex\Core\ReadableCaptionTrait
  */
-class ReadableCaptionTraitTest extends AtkPhpunit\TestCase
+class ReadableCaptionTraitTest extends \Phlex\Core\PHPUnit\TestCase
 {
     /**
      * Test readableCaption method.

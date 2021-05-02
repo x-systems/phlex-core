@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace Phlex\Core\Tests\Hintable;
 
-use Phlex\Core\AtkPhpunit;
 use Phlex\Core\Exception;
 use Phlex\Core\Hintable\Prop;
 
 /**
  * @coversDefaultClass \Phlex\Hintable\MagicProp
  */
-class PropTest extends AtkPhpunit\TestCase
+class PropTest extends \Phlex\Core\PHPUnit\TestCase
 {
     public function testPropName(): void
     {

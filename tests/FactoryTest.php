@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Phlex\Core\Tests;
 
-use Phlex\Core\AtkPhpunit;
 use Phlex\Core\DiContainerTrait;
 use Phlex\Core\Exception;
 use Phlex\Core\Factory;
@@ -13,7 +12,7 @@ use Phlex\Core\HookBreaker;
 /**
  * @coversDefaultClass \Phlex\Core\Factory
  */
-class FactoryTest extends AtkPhpunit\TestCase
+class FactoryTest extends \Phlex\Core\PHPUnit\TestCase
 {
     public function testMerge1()
     {

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Phlex\Core\Tests;
 
 use Phlex\Core\AppScopeTrait;
-use Phlex\Core\AtkPhpunit;
 use Phlex\Core\DynamicMethodTrait;
 use Phlex\Core\Exception;
 use Phlex\Core\HookTrait;
@@ -13,7 +12,7 @@ use Phlex\Core\HookTrait;
 /**
  * @coversDefaultClass \Phlex\Core\DynamicMethodTrait
  */
-class DynamicMethodTraitTest extends AtkPhpunit\TestCase
+class DynamicMethodTraitTest extends \Phlex\Core\PHPUnit\TestCase
 {
     /**
      * Test constructor.

@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace Phlex\Core\Tests;
 
-use Phlex\Core\AtkPhpunit;
 use Phlex\Core\ConfigTrait;
 
 /**
  * @coversDefaultClass \Phlex\Core\ConfigTrait
  */
-class ConfigTraitTest extends AtkPhpunit\TestCase
+class ConfigTraitTest extends \Phlex\Core\PHPUnit\TestCase
 {
     public $dir = __DIR__ . '/config_test';
 

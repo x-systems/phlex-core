@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Phlex\Core\Tests;
 
-use Phlex\Core\AtkPhpunit;
 use Phlex\Core\Exception;
 use Phlex\Core\NameTrait;
 use Phlex\Core\SessionTrait;
@@ -12,7 +11,7 @@ use Phlex\Core\SessionTrait;
 /**
  * @coversDefaultClass \Phlex\Core\SessionTrait
  */
-class SessionTraitTest extends AtkPhpunit\TestCase
+class SessionTraitTest extends \Phlex\Core\PHPUnit\TestCase
 {
     public static function setUpBeforeClass(): void
     {

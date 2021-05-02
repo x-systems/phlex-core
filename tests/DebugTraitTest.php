@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace Phlex\Core\Tests;
 
 use Phlex\Core\AppScopeTrait;
-use Phlex\Core\AtkPhpunit;
 use Phlex\Core\DebugTrait;
 
 /**
  * @coversDefaultClass \Phlex\Core\DebugTrait
  */
-class DebugTraitTest extends AtkPhpunit\TestCase
+class DebugTraitTest extends \Phlex\Core\PHPUnit\TestCase
 {
     /**
      * Test debug().

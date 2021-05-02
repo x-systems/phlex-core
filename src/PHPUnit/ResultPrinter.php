@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Core\AtkPhpunit;
+namespace Phlex\Core\PHPUnit;
 
 use Phlex\Core\Exception;
 use PHPUnit\Framework\ExceptionWrapper;

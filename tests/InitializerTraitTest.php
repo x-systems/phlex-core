@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace Phlex\Core\Tests;
 
 use Phlex\Core;
-use Phlex\Core\AtkPhpunit;
 use Phlex\Core\Exception;
 
 /**
  * @coversDefaultClass \Phlex\Core\InitializerTrait
  */
-class InitializerTraitTest extends AtkPhpunit\TestCase
+class InitializerTraitTest extends \Phlex\Core\PHPUnit\TestCase
 {
     /**
      * Test constructor.

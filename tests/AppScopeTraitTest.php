@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Phlex\Core\Tests;
 
 use Phlex\Core\AppScopeTrait;
-use Phlex\Core\AtkPhpunit;
 use Phlex\Core\ContainerTrait;
 use Phlex\Core\NameTrait;
 use Phlex\Core\TrackableTrait;
@@ -13,7 +12,7 @@ use Phlex\Core\TrackableTrait;
 /**
  * @coversDefaultClass \Phlex\Core\AppScopeTrait
  */
-class AppScopeTraitTest extends AtkPhpunit\TestCase
+class AppScopeTraitTest extends \Phlex\Core\PHPUnit\TestCase
 {
     /**
      * Test constructor.
