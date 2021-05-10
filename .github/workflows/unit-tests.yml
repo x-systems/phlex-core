@@ -84,12 +84,13 @@ jobs:
   unit-test:
     name: Unit
     runs-on: ubuntu-latest
+    needs: "smoke-test"
     container:
       image: atk4/image:${{ matrix.php }} # https://github.com/atk4/image
     strategy:
       fail-fast: false
       matrix:
-        php: ['7.3', 'latest', '8.0']
+        php: ['7.3', '7.4', 'latest']
         type: ['Phpunit']
         include:
           - php: 'latest'
