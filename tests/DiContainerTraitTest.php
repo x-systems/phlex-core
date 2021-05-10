@@ -91,19 +91,6 @@ class DiContainerTraitTest extends \Phlex\Core\PHPUnit\TestCase
         $m->setDefaults(['testSetter' => 'new_value'], true);
         $this->assertSame([$m->testSetter], ['correct_value']);
     }
-
-    public function testHintablePropName()
-    {
-        $this->assertSame('u', get_class(new class() {
-            use StaticPropNameTrait;
-
-            /** @var int */
-            public $u;
-        })::propName()->u);
-
-        $this->assertSame('a', FactoryDiMock2::propName()->a);
-        $this->assertSame('undefined', FactoryDiMock2::propName()->undefined); // @phpstan-ignore-line
-    }
 }
 
 // @codingStandardsIgnoreStart

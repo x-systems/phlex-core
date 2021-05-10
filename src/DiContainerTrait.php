@@ -34,8 +34,6 @@ use Illuminate\Support\Str;
  */
 trait DiContainerTrait
 {
-    use Hintable\StaticPropNameTrait;
-
     /**
      * Check this property to see if trait is present in the object.
      *
