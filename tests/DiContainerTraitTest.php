@@ -6,7 +6,6 @@ namespace Phlex\Core\Tests;
 
 use Phlex\Core\DiContainerTrait;
 use Phlex\Core\Exception;
-use Phlex\Core\Hintable\StaticPropNameTrait;
 
 /**
  * @coversDefaultClass \Phlex\Core\DiContainerTrait

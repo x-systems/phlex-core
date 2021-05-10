@@ -8,7 +8,7 @@ $finder = PhpCsFixer\Finder::create()
         'vendor',
     ]);
 
-return PhpCsFixer\Config::create()
+return (new PhpCsFixer\Config())
     ->setRiskyAllowed(true)
     ->setRules([
         '@PhpCsFixer' => true,
@@ -59,6 +59,9 @@ return PhpCsFixer\Config::create()
         'nullable_type_declaration_for_default_null_value' => [
             'use_nullable_type_declaration' => false,
         ],
+
+        // @TODO fix later
+        'php_unit_strict' => false,
     ])
     ->setFinder($finder)
-    ->setCacheFile(__DIR__ . '/.php_cs.cache');
+    ->setCacheFile(sys_get_temp_dir() . '/php-cs-fixer.' . md5(__DIR__) . '.cache');
