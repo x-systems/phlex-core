@@ -67,12 +67,8 @@ trait ContainerTrait
         $obj = $this->_add_Container($obj, $args);
 
         if (isset($obj->_initializerTrait)) {
-            if (!$obj->_initialized) {
-                $obj->invokeInit();
-            }
-            if (!$obj->_initialized) {
-                throw (new Exception('You should call parent::init() when you override initializer'))
-                    ->addMoreInfo('obj', $obj);
+            if (!$obj->isInitialized()) {
+                $obj->initialize();
             }
         }
 

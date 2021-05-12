@@ -116,24 +116,6 @@ class CollectionTraitTest extends \Phlex\Core\PHPUnit\TestCase
         $m->_getFromCollection('dont_exist', 'fields'); // do not exist
     }
 
-    /**
-     * Can not get non existant object.
-     */
-    public function testException6()
-    {
-        $this->expectException(core\Exception::class);
-        $m = new CollectionMock();
-        $m->addField('test', new class() {
-            use core\DiContainerTrait;
-            use core\InitializerTrait;
-            public $name;
-
-            protected function init(): void
-            {
-            }
-        });
-    }
-
     public function testClone()
     {
         try {

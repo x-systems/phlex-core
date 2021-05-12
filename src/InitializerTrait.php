@@ -22,30 +22,34 @@ trait InitializerTrait
      *
      * @var bool
      */
-    public $_initialized = false;
+    protected $initialized = false;
 
     /**
-     * Initialize object. Always call parent::init(). Do not call directly.
+     * Initialize object.
      */
-    protected function init(): void
+    public function initialize(): void
     {
-        if ($this->_initialized) {
+    	// assert doInitialize() method is not declared as public, ie. not easily directly callable by the user
+        if ((new \ReflectionMethod($this, 'doInitialize'))->getModifiers() & \ReflectionMethod::IS_PUBLIC) {
+            throw new Exception('doInitialize method must have protected visibility');
+        }
+
+        if ($this->initialized) {
             throw (new Exception('Attempting to initialize twice'))
                 ->addMoreInfo('this', $this);
         }
-        $this->_initialized = true;
+
+        $this->initialized = true;
+
+        $this->doInitialize();
     }
 
-    /**
-     * Do not call directly.
-     */
-    public function invokeInit(): void
+    protected function doInitialize(): void
     {
-        // assert init() method is not declared as public, ie. not easily directly callable by the user
-        if ((new \ReflectionMethod($this, 'init'))->getModifiers() & \ReflectionMethod::IS_PUBLIC) {
-            throw new Exception('Init method must have protected visibility');
-        }
+    }
 
-        $this->init();
+    public function isInitialized(): bool
+    {
+        return $this->initialized;
     }
 }

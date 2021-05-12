@@ -31,7 +31,7 @@ parameters:
         - '~^Call to an undefined method .+::hookHasCallbacks\(\)\.$~'
         - '~^Call to an undefined method .+::hook\(\)\.$~'
         # for InitializerTrait.php
-        - '~^Call to an undefined method .+::invokeInit\(\)\.$~'
+        - '~^Call to an undefined method .+::initialize\(\)\.$~'
         - '~^Access to an undefined property .+::\$_initialized\.$~'
         # for NameTrait.php
         - '~^Access to an undefined property .+::\$name\.$~'

@@ -23,19 +23,12 @@ class InitializerTraitTest extends \Phlex\Core\PHPUnit\TestCase
         $this->assertTrue($i->result);
     }
 
-    public function testInitializerNotCalled()
-    {
-        $this->expectException(Exception::class);
-        $m = new ContainerMock2();
-        $m->add(new BrokenInitializerMock());
-    }
-
     public function testInitializedTwice()
     {
         $this->expectException(Exception::class);
         $m = new InitializerMock();
-        $m->invokeInit();
-        $m->invokeInit();
+        $m->initialize();
+        $m->initialize();
     }
 }
 
@@ -54,19 +47,11 @@ class InitializerMock extends _InitializerMock
 {
     public $result = false;
 
-    protected function init(): void
+    protected function doInitialize(): void
     {
-        parent::init();
+        parent::doInitialize();
 
         $this->result = true;
-    }
-}
-
-class BrokenInitializerMock extends _InitializerMock
-{
-    protected function init(): void
-    {
-        // do not call parent
     }
 }
 // @codingStandardsIgnoreEnd

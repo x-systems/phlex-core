@@ -11,18 +11,14 @@ use Phlex\Core\TrackableTrait;
 class CustomFieldMock extends FieldMock
 {
     use AppScopeTrait;
-    use InitializerTrait {
-        init as _init;
-    }
+    use InitializerTrait;
     use TrackableTrait;
 
     /** @var null verifying if init wal called */
     public $var;
 
-    protected function init(): void
+    protected function doInitialize(): void
     {
-        $this->_init();
-
         $this->var = true;
     }
 }
