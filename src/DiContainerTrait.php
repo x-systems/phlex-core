@@ -51,33 +51,41 @@ trait DiContainerTrait
      */
     public function setDefaults(array $properties, bool $passively = false)
     {
-        foreach ($properties as $name => $val) {
+        foreach ($properties as $name => $value) {
             $setterName = 'set' . Str::studly($name);
             $setterExists = method_exists($this, $setterName) && $setterName !== 'setDefaults';
 
-            if (!property_exists($this, $name) && !$setterExists) {
-                throw (new Exception('Property for specified object is not defined'))
-                    ->addMoreInfo('object', $this)
-                    ->addMoreInfo('property', $name)
-                    ->addMoreInfo('value', $val);
-            }
+            if (property_exists($this, $name) || $setterExists) {
+                $origValue = $this->{$name} ?? null;
 
-            $origValue = $this->{$name} ?? null;
-
-            if ($passively && $origValue !== null) {
-                continue;
-            }
-
-            if ($val !== null) {
-                if ($setterExists) {
-                    $this->{$setterName}($val);
-                } else {
-                    $this->{$name} = $val;
+                if ($passively && $origValue !== null) {
+                    continue;
                 }
+
+                if ($value !== null) {
+                    if ($setterExists) {
+                        $this->{$setterName}($value);
+                    } else {
+                        $this->{$name} = $value;
+                    }
+                }
+            } else {
+                $this->setMissingProperty($name, $value);
             }
         }
 
         return $this;
+    }
+
+    /**
+     * @param mixed $value
+     */
+    protected function setMissingProperty(string $name, $value): void
+    {
+        throw (new Exception('Property for specified object is not defined'))
+            ->addMoreInfo('object', $this)
+            ->addMoreInfo('property', $name)
+            ->addMoreInfo('value', $value);
     }
 
     /**
