@@ -26,25 +26,25 @@ trait CollectionTrait
      *
      * @param string $collection property name
      */
-    public function _addIntoCollection(string $name, object $item, string $collection): object
+    public function _addIntoCollection(string $elementId, object $item, string $collection): object
     {
         if (!isset($this->{$collection}) || !is_array($this->{$collection})) {
             throw (new Exception('Collection does NOT exist'))
                 ->addMoreInfo('collection', $collection);
         }
 
-        if ($name === '') {
+        if ($elementId === '') {
             throw (new Exception('Empty name is not supported'))
                 ->addMoreInfo('collection', $collection)
-                ->addMoreInfo('name', $name);
+                ->addMoreInfo('element', $elementId);
         }
 
-        if ($this->_hasInCollection($name, $collection)) {
+        if ($this->_hasInCollection($elementId, $collection)) {
             throw (new Exception('Element with the same name already exist in the collection'))
                 ->addMoreInfo('collection', $collection)
-                ->addMoreInfo('name', $name);
+                ->addMoreInfo('element', $elementId);
         }
-        $this->{$collection}[$name] = $item;
+        $this->{$collection}[$elementId] = $item;
 
         // Carry on reference to application if we have appScopeTraits set
         if (isset($this->_appScopeTrait) && isset($item->_appScopeTrait)) {
@@ -53,10 +53,10 @@ trait CollectionTrait
 
         // Calculate long "name" but only if both are trackables
         if (isset($item->_trackableTrait)) {
-            $item->short_name = $name;
+            $item->elementId = $elementId;
             $item->setOwner($this);
             if (isset($this->_trackableTrait)) {
-                $item->name = $this->_shorten_ml($this->name . '-' . $collection . '_' . $name);
+                $item->elementName = $this->_shorten_ml($this->elementName . '-' . $collection . '_' . $elementId);
             }
         }
 
@@ -74,14 +74,14 @@ trait CollectionTrait
      *
      * @param string $collection property name
      */
-    public function _removeFromCollection(string $name, string $collection): void
+    public function _removeFromCollection(string $elementId, string $collection): void
     {
-        if (!$this->_hasInCollection($name, $collection)) {
+        if (!$this->_hasInCollection($elementId, $collection)) {
             throw (new Exception('Element is NOT in the collection'))
                 ->addMoreInfo('collection', $collection)
-                ->addMoreInfo('name', $name);
+                ->addMoreInfo('element', $elementId);
         }
-        unset($this->{$collection}[$name]);
+        unset($this->{$collection}[$elementId]);
     }
 
     /**
@@ -107,25 +107,25 @@ trait CollectionTrait
      *
      * @param string $collection property name
      */
-    public function _hasInCollection(string $name, string $collection): bool
+    public function _hasInCollection(string $elementId, string $collection): bool
     {
         $data = $this->{$collection};
 
-        return isset($data[$name]);
+        return isset($data[$elementId]);
     }
 
     /**
      * @param string $collection property name
      */
-    public function _getFromCollection(string $name, string $collection): object
+    public function _getFromCollection(string $elementId, string $collection): object
     {
-        if (!$this->_hasInCollection($name, $collection)) {
+        if (!$this->_hasInCollection($elementId, $collection)) {
             throw (new Exception('Element is NOT in the collection'))
                 ->addMoreInfo('collection', $collection)
-                ->addMoreInfo('name', $name);
+                ->addMoreInfo('name', $elementId);
         }
 
-        return $this->{$collection}[$name];
+        return $this->{$collection}[$elementId];
     }
 
     /**

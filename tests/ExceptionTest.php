@@ -58,7 +58,7 @@ class ExceptionTest extends \Phlex\Core\PHPUnit\TestCase
         $this->assertSame('stdClass', $ret);
 
         $a = new TrackableMock2();
-        $a->name = 'foo';
+        $a->elementName = 'foo';
         $ret = $m->toString($a);
         $this->assertSame(TrackableMock2::class . ' (foo)', $ret);
     }

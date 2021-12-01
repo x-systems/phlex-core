@@ -68,20 +68,20 @@ class SessionTraitTest extends \Phlex\Core\PHPUnit\TestCase
     public function testMemorize()
     {
         $m = new SessionMock();
-        $m->name = 'test';
+        $m->elementName = 'test';
 
         // value as string
         $m->memorize('foo', 'bar');
-        $this->assertSame('bar', $_SESSION['__atk_session'][$m->name]['foo']);
+        $this->assertSame('bar', $_SESSION['__phlex_session'][$m->elementName]['foo']);
 
         // value as null
         $m->memorize('foo', null);
-        $this->assertNull($_SESSION['__atk_session'][$m->name]['foo']);
+        $this->assertNull($_SESSION['__phlex_session'][$m->elementName]['foo']);
 
         // value as object
         $o = new \StdClass();
         $m->memorize('foo', $o);
-        $this->assertSame($o, $_SESSION['__atk_session'][$m->name]['foo']);
+        $this->assertSame($o, $_SESSION['__phlex_session'][$m->elementName]['foo']);
 
         $m->destroySession();
     }

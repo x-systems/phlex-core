@@ -29,7 +29,7 @@ trait InitializerTrait
      */
     public function initialize(): void
     {
-    	// assert doInitialize() method is not declared as public, ie. not easily directly callable by the user
+        // assert doInitialize() method is not declared as public, ie. not easily directly callable by the user
         if ((new \ReflectionMethod($this, 'doInitialize'))->getModifiers() & \ReflectionMethod::IS_PUBLIC) {
             throw new Exception('doInitialize method must have protected visibility');
         }

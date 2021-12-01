@@ -85,7 +85,7 @@ class ContainerTraitTest extends \Phlex\Core\PHPUnit\TestCase
         $app = new ContainerAppMock();
         $app->setApp($app);
         $app->max_name_length = 30;
-        $app->name = 'my-app-name-is-pretty-long';
+        $app->elementName = 'my-app-name-is-pretty-long';
 
         $max_len = 0;
         $min_len_v = '';
@@ -95,13 +95,13 @@ class ContainerTraitTest extends \Phlex\Core\PHPUnit\TestCase
         for ($x = 1; $x < 100; ++$x) {
             $sh = str_repeat('x', $x);
             $m = $app->add(new ContainerAppMock(), $sh);
-            if (strlen($m->name) > $max_len) {
-                $max_len = strlen($m->name);
-                $max_len_v = $m->name;
+            if (strlen($m->elementName) > $max_len) {
+                $max_len = strlen($m->elementName);
+                $max_len_v = $m->elementName;
             }
-            if (strlen($m->name) < $min_len) {
-                $min_len = strlen($m->name);
-                $min_len_v = $m->name;
+            if (strlen($m->elementName) < $min_len) {
+                $min_len = strlen($m->elementName);
+                $min_len_v = $m->elementName;
             }
         }
 
@@ -119,7 +119,7 @@ class ContainerTraitTest extends \Phlex\Core\PHPUnit\TestCase
 
         $m3 = $m->add([TrackableContainerMock::class], 'name');
         $this->assertSame(TrackableContainerMock::class, get_class($m3));
-        $this->assertSame('name', $m3->short_name);
+        $this->assertSame('name', $m3->elementId);
     }
 
     public function testArgs()
@@ -127,10 +127,10 @@ class ContainerTraitTest extends \Phlex\Core\PHPUnit\TestCase
         // passing name with array key 'name'
         $m = new ContainerMock();
         $m2 = $m->add(new class() extends TrackableMock {
-            use core\DiContainerTrait;
-        }, ['name' => 'foo']);
+            use Core\DiContainerTrait;
+        }, ['elementName' => 'foo']);
         $this->assertTrue($m->hasElement('foo'));
-        $this->assertSame('foo', $m2->short_name);
+        $this->assertSame('foo', $m2->elementId);
     }
 
     public function testExceptionExists()
@@ -144,8 +144,8 @@ class ContainerTraitTest extends \Phlex\Core\PHPUnit\TestCase
     public function testDesiredName()
     {
         $m = new ContainerMock();
-        $m->add(new TrackableMock(), ['desired_name' => 'foo']);
-        $m->add(new TrackableMock(), ['desired_name' => 'foo']);
+        $m->add(new TrackableMock(), ['desiredName' => 'foo']);
+        $m->add(new TrackableMock(), ['desiredName' => 'foo']);
 
         $this->assertTrue($m->hasElement('foo'));
     }
@@ -195,19 +195,20 @@ class ContainerTraitTest extends \Phlex\Core\PHPUnit\TestCase
 // @codingStandardsIgnoreStart
 class TrackableMock
 {
-    use core\TrackableTrait;
+    use Core\DiContainerTrait;
+    use Core\TrackableTrait;
 }
 class ContainerFactoryMock
 {
-    use core\ContainerTrait;
-    use core\NameTrait;
+    use Core\ContainerTrait;
+    use Core\NameTrait;
 }
 
 class ContainerAppMock
 {
-    use core\AppScopeTrait;
-    use core\ContainerTrait;
-    use core\TrackableTrait;
+    use Core\AppScopeTrait;
+    use Core\ContainerTrait;
+    use Core\TrackableTrait;
 
     public function getElementCount()
     {
@@ -216,7 +217,7 @@ class ContainerAppMock
 
     public function unshortenName()
     {
-        $n = $this->name;
+        $n = $this->elementName;
 
         $d = array_flip($this->getApp()->unique_hashes);
 

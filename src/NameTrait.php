@@ -21,5 +21,5 @@ trait NameTrait
      *
      * @var string
      */
-    public $name;
+    public $elementName;
 }

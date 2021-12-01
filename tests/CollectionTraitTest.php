@@ -44,20 +44,20 @@ class CollectionTraitTest extends \Phlex\Core\PHPUnit\TestCase
         try {
             $m = new CollectionMockWithApp();
             $m->setApp(new class() {
-                public $name = 'app';
+                public $elementName = 'app';
                 public $max_name_length = 20;
             });
-            $m->name = 'form';
+            $m->elementName = 'form';
 
             $surname = $m->addField('surname', [CustomFieldMock::class]);
 
-            $this->assertSame('app', $surname->getApp()->name);
+            $this->assertSame('app', $surname->getApp()->elementName);
 
-            $this->assertSame('form-fields_surname', $surname->name);
+            $this->assertSame('form-fields_surname', $surname->elementName);
             $this->assertSame($surname->getOwner(), $m);
 
             $long = $m->addField('very-long-and-annoying-name-which-will-be-shortened', [CustomFieldMock::class]);
-            $this->assertLessThan(21, strlen($long->name));
+            $this->assertLessThan(21, strlen($long->elementName));
         } catch (core\Exception $e) {
             echo $e->getColorfulText();
 

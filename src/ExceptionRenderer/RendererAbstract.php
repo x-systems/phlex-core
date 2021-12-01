@@ -90,7 +90,7 @@ abstract class RendererAbstract
         if ($parsed['object'] !== null) {
             $objProps = get_object_vars($parsed['object']);
             $parsed['object_formatted'] = isset($objProps['_trackableTrait'])
-                ? $objProps['name']
+                ? $objProps['elementName']
                 : get_class($parsed['object']);
         }
 
@@ -104,7 +104,7 @@ abstract class RendererAbstract
         } elseif (is_object($val)) {
             $objProps = get_object_vars($val);
 
-            return get_class($val) . (isset($objProps['_trackableTrait']) ? ' (' . $objProps['name'] . ')' : '');
+            return get_class($val) . (isset($objProps['_trackableTrait']) ? ' (' . $objProps['elementName'] . ')' : '');
         } elseif (is_resource($val)) {
             return 'resource';
         } elseif (is_scalar($val) || $val === null) {

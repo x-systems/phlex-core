@@ -18,7 +18,7 @@ trait ContainerTrait
     public $_containerTrait = true;
 
     /**
-     * short_name => object hash of children objects. If the child is not
+     * elementId => object hash of children objects. If the child is not
      * trackable, then object will be set to "true" (to avoid extra reference).
      *
      * @var array
@@ -58,7 +58,7 @@ trait ContainerTrait
     {
         if (is_array($args)) {
             $args1 = $args;
-            unset($args1['desired_name']);
+            unset($args1['desiredName']);
             unset($args1[0]);
             $obj = Factory::factory($obj, $args1);
         } else {
@@ -100,21 +100,20 @@ trait ContainerTrait
         } elseif (!is_array($args) && $args !== null) {
             throw (new Exception('Second argument must be array'))
                 ->addMoreInfo('arg2', $args);
-        } elseif (isset($args['desired_name'])) {
-            // passed as ['desired_name'=>'foo'];
-            $args[0] = $this->_unique_element($args['desired_name']);
-            unset($args['desired_name']);
-        } elseif (isset($args['name'])) {
+        } elseif (isset($args['desiredName'])) {
+            // passed as ['desiredName'=>'foo'];
+            $args[0] = $this->_unique_element($args['desiredName']);
+            unset($args['desiredName']);
+        } elseif (isset($args['elementName'])) {
             // passed as ['name'=>'foo'];
-            $args[0] = $args['name'];
-            unset($args['name']);
-        } elseif (isset($element->short_name)) {
+            $args[0] = $args['elementName'];
+            unset($args['elementName']);
+        } elseif (isset($element->elementId)) {
             // element has a name already
-            $args[0] = $this->_unique_element($element->short_name);
+            $args[0] = $this->_unique_element($element->elementId);
         } else {
             // ask element on his preferred name, then make it unique.
-            $cn = $element->getDesiredName();
-            $args[0] = $this->_unique_element($cn);
+            $args[0] = $this->_unique_element($element->getDesiredName());
         }
 
         // Maybe element already exists
@@ -127,11 +126,11 @@ trait ContainerTrait
         }
 
         $element->setOwner($this);
-        $element->short_name = $args[0];
+        $element->elementId = $args[0];
         if (isset($this->_nameTrait)) {
-            $element->name = $this->_shorten($this->name . '_' . $element->short_name);
+            $element->elementName = $this->_shorten($this->elementName . '_' . $element->elementId);
         }
-        $this->elements[$element->short_name] = $element;
+        $this->elements[$element->elementId] = $element;
 
         unset($args[0]);
         unset($args['name']);
@@ -147,21 +146,21 @@ trait ContainerTrait
     /**
      * Remove child element if it exists.
      *
-     * @param string|object $short_name short name of the element
+     * @param string|object $elementId ID of the element
      */
-    public function removeElement($short_name)
+    public function removeElement($elementId)
     {
-        if (is_object($short_name)) {
-            $short_name = $short_name->short_name;
+        if (is_object($elementId)) {
+            $elementId = $elementId->elementId;
         }
 
-        if (!isset($this->elements[$short_name])) {
+        if (!isset($this->elements[$elementId])) {
             throw (new Exception('Could not remove child from parent. Instead of destroy() try using removeField / removeColumn / ..'))
                 ->addMoreInfo('parent', $this)
-                ->addMoreInfo('name', $short_name);
+                ->addMoreInfo('element', $elementId);
         }
 
-        unset($this->elements[$short_name]);
+        unset($this->elements[$elementId]);
 
         return $this;
     }
@@ -200,27 +199,27 @@ trait ContainerTrait
     }
 
     /**
-     * Find child element by its short name. Use in chaining.
+     * Find child element by its ID. Use in chaining.
      * Exception if not found.
      *
-     * @param string $short_name Short name of the child element
+     * @param string $elementId ID of the child element
      */
-    public function getElement(string $short_name): object
+    public function getElement(string $elementId): object
     {
-        if (!isset($this->elements[$short_name])) {
+        if (!isset($this->elements[$elementId])) {
             throw (new Exception('Child element not found'))
                 ->addMoreInfo('parent', $this)
-                ->addMoreInfo('element', $short_name);
+                ->addMoreInfo('element', $elementId);
         }
 
-        return $this->elements[$short_name];
+        return $this->elements[$elementId];
     }
 
     /**
-     * @param string $short_name Short name of the child element
+     * @param string $elementId ID of the child element
      */
-    public function hasElement($short_name): bool
+    public function hasElement($elementId): bool
     {
-        return isset($this->elements[$short_name]);
+        return isset($this->elements[$elementId]);
     }
 }

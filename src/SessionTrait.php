@@ -18,7 +18,7 @@ trait SessionTrait
      *
      * @var string
      */
-    protected $session_key = '__atk_session';
+    protected $sessionKey = '__phlex_session';
 
     /**
      * Create new session.
@@ -68,7 +68,7 @@ trait SessionTrait
     {
         $this->startSession();
 
-        $_SESSION[$this->session_key][$this->name][$key] = $value;
+        $_SESSION[$this->sessionKey][$this->elementName][$key] = $value;
 
         return $value;
     }
@@ -82,8 +82,8 @@ trait SessionTrait
     {
         $this->startSession();
 
-        if (!isset($_SESSION[$this->session_key][$this->name][$key])
-            || $_SESSION[$this->session_key][$this->name][$key] === null
+        if (!isset($_SESSION[$this->sessionKey][$this->elementName][$key])
+            || $_SESSION[$this->sessionKey][$this->elementName][$key] === null
         ) {
             if ($default instanceof \Closure) {
                 $default = $default($key);
@@ -105,8 +105,8 @@ trait SessionTrait
     {
         $this->startSession();
 
-        if (!isset($_SESSION[$this->session_key][$this->name][$key])
-            || $_SESSION[$this->session_key][$this->name][$key] === null
+        if (!isset($_SESSION[$this->sessionKey][$this->elementName][$key])
+            || $_SESSION[$this->sessionKey][$this->elementName][$key] === null
         ) {
             if ($default instanceof \Closure) {
                 $default = $default($key);
@@ -115,7 +115,7 @@ trait SessionTrait
             return $default;
         }
 
-        return $_SESSION[$this->session_key][$this->name][$key];
+        return $_SESSION[$this->sessionKey][$this->elementName][$key];
     }
 
     /**
@@ -131,9 +131,9 @@ trait SessionTrait
         $this->startSession();
 
         if ($key === null) {
-            unset($_SESSION[$this->session_key][$this->name]);
+            unset($_SESSION[$this->sessionKey][$this->elementName]);
         } else {
-            unset($_SESSION[$this->session_key][$this->name][$key]);
+            unset($_SESSION[$this->sessionKey][$this->elementName][$key]);
         }
 
         return $this;

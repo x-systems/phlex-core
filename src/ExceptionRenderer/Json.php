@@ -116,7 +116,7 @@ class Json extends RendererAbstract
             'line' => $call['line'] ?? '',
             'file' => $call['file'] ?? '',
             'class' => $call['class'] ?? null,
-            'object' => ($call['object'] ?? null) !== null ? ($call['object']->name ?? get_class($call['object'])) : null,
+            'object' => ($call['object'] ?? null) !== null ? ($call['object']->elementName ?? get_class($call['object'])) : null,
             'function' => $call['function'] ?? null,
             'args' => $call['args'] ?? [],
         ];

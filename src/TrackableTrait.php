@@ -32,14 +32,14 @@ trait TrackableTrait
      *
      * @var object
      */
-    private $_owner;
+    private $elementOwner;
 
     /**
-     * Name of the object in owner's element array.
+     * ID of the object in owner's element array.
      *
      * @var string
      */
-    public $short_name;
+    public $elementId;
 
     /**
      * To be removed in Jan 2021.
@@ -55,14 +55,14 @@ trait TrackableTrait
     {
         $this->assertNoDirectOwnerAssignment();
 
-        return $this->_owner !== null;
+        return $this->elementOwner !== null;
     }
 
     public function getOwner(): object
     {
         $this->assertNoDirectOwnerAssignment();
 
-        return $this->_owner;
+        return $this->elementOwner;
     }
 
     /**
@@ -75,7 +75,7 @@ trait TrackableTrait
             throw new Exception('Owner already set');
         }
 
-        $this->_owner = $owner;
+        $this->elementOwner = $owner;
 
         return $this;
     }
@@ -92,7 +92,7 @@ trait TrackableTrait
             throw new Exception('Owner not set');
         }
 
-        $this->_owner = null;
+        $this->elementOwner = null;
 
         return $this;
     }
@@ -126,8 +126,8 @@ trait TrackableTrait
      */
     public function destroy(): void
     {
-        if ($this->_owner !== null && isset($this->_owner->_containerTrait)) {
-            $this->_owner->removeElement($this->short_name);
+        if ($this->elementOwner !== null && isset($this->elementOwner->_containerTrait)) {
+            $this->elementOwner->removeElement($this->elementId);
 
             // GC remove reference to app is AppScope in use
             if (isset($this->_appScopeTrait) && $this->issetApp()) {
@@ -135,7 +135,7 @@ trait TrackableTrait
             }
 
             // GC : remove reference to owner
-            $this->_owner = null;
+            $this->elementOwner = null;
         }
     }
 }
