@@ -92,7 +92,7 @@ class SessionTraitTest extends \Phlex\Core\PHPUnit\TestCase
     public function testLearnRecallForget()
     {
         $m = new SessionMock();
-        $m->name = 'test';
+        $m->elementName = 'test';
 
         // value as string
         $m->learn('foo', 'bar');
@@ -105,17 +105,13 @@ class SessionTraitTest extends \Phlex\Core\PHPUnit\TestCase
         $this->assertSame('undefined', $m->recall('foo', 'undefined'));
 
         // value as callback
-        $m->learn('foo', function ($key) {
-            return $key . '_bar';
-        });
+        $m->learn('foo', fn ($key) => $key . '_bar');
         $this->assertSame('foo_bar', $m->recall('foo'));
 
         $m->learn('foo_2', 'another');
         $this->assertSame('another', $m->recall('foo_2'));
 
-        $v = $m->recall('foo_3', function ($key) {
-            return $key . '_bar';
-        });
+        $v = $m->recall('foo_3', fn ($key) => $key . '_bar');
         $this->assertSame('foo_3_bar', $v);
         $this->assertSame('undefined', $m->recall('foo_3', 'undefined'));
 

@@ -28,21 +28,21 @@ trait ContainerTrait
     /**
      * @var int[]
      */
-    private $_element_name_counts = [];
+    private $elementNameCounts = [];
 
     /**
      * Returns unique element name based on desired name.
      */
-    public function _unique_element(string $desired): string
+    public function getUniqueElementName(string $desiredName): string
     {
-        if (!isset($this->_element_name_counts[$desired])) {
-            $this->_element_name_counts[$desired] = 1;
+        if (!isset($this->elementNameCounts[$desiredName])) {
+            $this->elementNameCounts[$desiredName] = 1;
             $postfix = '';
         } else {
-            $postfix = '_' . (++$this->_element_name_counts[$desired]);
+            $postfix = '_' . (++$this->elementNameCounts[$desiredName]);
         }
 
-        return $desired . $postfix;
+        return $desiredName . $postfix;
     }
 
     /**
@@ -102,18 +102,18 @@ trait ContainerTrait
                 ->addMoreInfo('arg2', $args);
         } elseif (isset($args['desiredName'])) {
             // passed as ['desiredName'=>'foo'];
-            $args[0] = $this->_unique_element($args['desiredName']);
+            $args[0] = $this->getUniqueElementName($args['desiredName']);
             unset($args['desiredName']);
         } elseif (isset($args['elementName'])) {
             // passed as ['name'=>'foo'];
             $args[0] = $args['elementName'];
             unset($args['elementName']);
         } elseif (isset($element->elementId)) {
-            // element has a name already
-            $args[0] = $this->_unique_element($element->elementId);
+            // element has an id already
+            $args[0] = $this->getUniqueElementName($element->elementId);
         } else {
             // ask element on his preferred name, then make it unique.
-            $args[0] = $this->_unique_element($element->getDesiredName());
+            $args[0] = $this->getUniqueElementName($element->getDesiredName());
         }
 
         // Maybe element already exists
@@ -168,34 +168,34 @@ trait ContainerTrait
     /**
      * Method used internally for shortening object names.
      *
-     * @param string $desired desired name of new object
+     * @param string $desiredName desired name of new object
      *
      * @return string shortened name of new object
      */
-    protected function _shorten(string $desired): string
+    protected function _shorten(string $desiredName): string
     {
         if (isset($this->_appScopeTrait)
             && isset($this->getApp()->max_name_length)
-            && mb_strlen($desired) > $this->getApp()->max_name_length) {
+            && mb_strlen($desiredName) > $this->getApp()->max_name_length) {
             /*
              * Basic rules: hash is 10 character long (8+2 for separator)
              * We need at least 5 characters on the right side. Total must not exceed
              * max_name_length. First chop will be max-10, then chop size will increase by
              * max-15
              */
-            $len = mb_strlen($desired);
+            $len = mb_strlen($desiredName);
             $left = $len - ($len - 10) % ($this->getApp()->max_name_length - 15) - 5;
 
-            $key = mb_substr($desired, 0, $left);
-            $rest = mb_substr($desired, $left);
+            $key = mb_substr($desiredName, 0, $left);
+            $rest = mb_substr($desiredName, $left);
 
             if (!isset($this->getApp()->unique_hashes[$key])) {
                 $this->getApp()->unique_hashes[$key] = '_' . dechex(crc32($key));
             }
-            $desired = $this->getApp()->unique_hashes[$key] . '__' . $rest;
+            $desiredName = $this->getApp()->unique_hashes[$key] . '__' . $rest;
         }
 
-        return $desired;
+        return $desiredName;
     }
 
     /**

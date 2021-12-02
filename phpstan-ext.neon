@@ -5,3 +5,6 @@ services:
         tags:
             - phpstan.broker.propertiesClassReflectionExtension
             - phpstan.broker.methodsClassReflectionExtension
+
+rules:
+    - Phlex\Core\Hintable\Phpstan\AssertSamePhpstanTypeRule

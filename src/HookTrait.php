@@ -113,22 +113,19 @@ trait HookTrait
         $fxScopeClassRefl = $fxRefl->getClosureScopeClass();
         $fxThis = $fxRefl->getClosureThis();
         if ($fxScopeClassRefl === null) {
-            $fxLong = static function ($ignore, &...$args) use ($fx) {
-                return $fx(...$args);
-            };
+            $fxLong = static fn ($ignore, &...$args) => $fx(...$args);
         } elseif ($fxThis === null) {
-            $fxLong = \Closure::bind(function ($ignore, &...$args) use ($fx) {
-                return $fx(...$args);
-            }, null, $fxScopeClassRefl->getName());
+            $fxLong = \Closure::bind(fn ($ignore, &...$args) => $fx(...$args), null, $fxScopeClassRefl->getName());
         } else {
-            $fxLong = \Closure::bind(function ($ignore, &...$args) use ($fx) {
-                return \Closure::bind($fx, $this)(...$args);
-            }, $fxThis, $fxScopeClassRefl->getName());
+            $fxLong = \Closure::bind(fn ($ignore, &...$args) => \Closure::bind($fx, $this)(...$args), $fxThis, $fxScopeClassRefl->getName());
         }
 
         return $this->onHook($spot, $fxLong, $args, $priority);
     }
 
+    /**
+     * @param array<int, mixed> $args
+     */
     private function makeHookDynamicFx(\Closure $getFxThisFx, \Closure $fx, array $args, bool $isShort): \Closure
     {
         return function ($ignore, &...$args) use ($getFxThisFx, $fx, $isShort) {

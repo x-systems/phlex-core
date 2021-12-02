@@ -19,7 +19,7 @@ trait NameTrait
     /**
      * Unique object name.
      *
-     * @var string
+     * @var string|null
      */
     public $elementName;
 }

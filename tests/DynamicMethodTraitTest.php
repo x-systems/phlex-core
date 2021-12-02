@@ -20,9 +20,7 @@ class DynamicMethodTraitTest extends \Phlex\Core\PHPUnit\TestCase
     public function testConstruct()
     {
         $m = new DynamicMethodMock();
-        $m->addMethod('test', function () {
-            return 'world';
-        });
+        $m->addMethod('test', fn () => 'world');
 
         $this->assertTrue($m->hasMethod('test'));
 
@@ -72,9 +70,7 @@ class DynamicMethodTraitTest extends \Phlex\Core\PHPUnit\TestCase
     {
         // simple method
         $m = new DynamicMethodMock();
-        $m->addMethod('sum', function ($m, $a, $b) {
-            return $a + $b;
-        });
+        $m->addMethod('sum', fn ($m, $a, $b) => $a + $b);
         $res = $m->sum(3, 5);
         $this->assertSame(8, $res);
 
@@ -99,12 +95,8 @@ class DynamicMethodTraitTest extends \Phlex\Core\PHPUnit\TestCase
         $this->expectException(Exception::class);
 
         $m = new DynamicMethodMock();
-        $m->addMethod('sum', function ($m, $a, $b) {
-            return $a + $b;
-        });
-        $m->addMethod('sum', function ($m, $a, $b) {
-            return $a + $b;
-        });
+        $m->addMethod('sum', fn ($m, $a, $b) => $a + $b);
+        $m->addMethod('sum', fn ($m, $a, $b) => $a + $b);
     }
 
     /**
@@ -114,9 +106,7 @@ class DynamicMethodTraitTest extends \Phlex\Core\PHPUnit\TestCase
     {
         // simple method
         $m = new DynamicMethodMock();
-        $m->addMethod('sum', function ($m, $a, $b) {
-            return $a + $b;
-        });
+        $m->addMethod('sum', fn ($m, $a, $b) => $a + $b);
         $this->assertTrue($m->hasMethod(('sum')));
         $m->removeMethod('sum');
         $this->assertFalse($m->hasMethod(('sum')));

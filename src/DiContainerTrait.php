@@ -147,7 +147,7 @@ trait DiContainerTrait
             throw new \Error('Too many method arguments');
         }
 
-        $seed = static::_fromSeedPrecheck($seed, false);
+        $seed = self::_fromSeedPrecheck($seed, false);
         $object = Factory::factory($seed, $defaults);
 
         static::assertInstanceOf($object);
@@ -168,7 +168,7 @@ trait DiContainerTrait
             throw new \Error('Too many method arguments');
         }
 
-        $seed = static::_fromSeedPrecheck($seed, true);
+        $seed = self::_fromSeedPrecheck($seed, true);
         $object = Factory::factory($seed, $defaults);
 
         return $object;

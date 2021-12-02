@@ -41,13 +41,11 @@ class Factory
         }
 
         ob_start();
-        debug_print_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+        debug_print_backtrace(\DEBUG_BACKTRACE_IGNORE_ARGS);
         $trace = preg_replace('~^#0.+?\n~', '', ob_get_clean());
-        $trace = preg_replace_callback('~[^\n\[\]<>]+\.php~', function ($matches) use ($traceRenderer) {
-            return $traceRenderer->tryRelativizePath($matches[0]);
-        }, $trace);
+        $trace = preg_replace_callback('~[^\n\[\]<>]+\.php~', fn ($matches) => $traceRenderer->tryRelativizePath($matches[0]), $trace);
         // echo (new Exception($msg))->getHtml();
-        'trigger_error'($msg . (!class_exists(\PHPUnit\Framework\Test::class, false) ? "\n" . $trace : ''), E_USER_DEPRECATED);
+        'trigger_error'($msg . (!class_exists(\PHPUnit\Framework\Test::class, false) ? "\n" . $trace : ''), \E_USER_DEPRECATED);
     }
 
     private function checkSeeFunc($seed): ?string
@@ -67,7 +65,7 @@ class Factory
         // do not emit warnings for core tests:
         // - some tests already tests for exception
         // - we may later want to use this function for "mergeDefaults" (like _factory() below does)
-        foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) as $cl) {
+        foreach (debug_backtrace(\DEBUG_BACKTRACE_IGNORE_ARGS) as $cl) {
             if (strpos($cl['class'] ?? '', 'Phlex\Core\Tests\\') === 0) {
                 return null;
             }
@@ -127,7 +125,7 @@ class Factory
             }
         }
 
-        ksort($arguments, SORT_NUMERIC);
+        ksort($arguments, \SORT_NUMERIC);
         if ($obj === null) {
             $arguments = $arguments + $injection;
 
@@ -205,7 +203,7 @@ class Factory
         }
         unset($defaults);
 
-        $arguments = array_filter($seed, 'is_int', ARRAY_FILTER_USE_KEY); // with numeric keys
+        $arguments = array_filter($seed, 'is_int', \ARRAY_FILTER_USE_KEY); // with numeric keys
         $injection = array_diff_key($seed, $arguments); // with string keys
         $object = array_shift($arguments); // first numeric key argument is object
 

@@ -12,9 +12,7 @@ class MyClass2
 
 $c = new MyClass2();
 
-$c->addMethod('mymethod', function ($c, $a, $b) {
-    return $a + $b;
-});
+$c->addMethod('mymethod', fn ($c, $a, $b) => $a + $b);
 
 // @phpstan-ignore-next-line
 echo $c->mymethod(2, 3) . "\n";

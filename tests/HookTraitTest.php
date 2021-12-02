@@ -96,39 +96,19 @@ class HookTraitTest extends \Phlex\Core\PHPUnit\TestCase
     public function testOrder()
     {
         $m = new HookMock();
-        $ind = $m->onHook('spot', function () {
-            return 3;
-        }, [], -1);
-        $m->onHook('spot', function () {
-            return 2;
-        }, [], -5);
-        $m->onHook('spot', function () {
-            return 1;
-        }, [], -5);
+        $ind = $m->onHook('spot', fn () => 3, [], -1);
+        $m->onHook('spot', fn () => 2, [], -5);
+        $m->onHook('spot', fn () => 1, [], -5);
 
-        $m->onHook('spot', function () {
-            return 4;
-        }, [], 0);
-        $m->onHook('spot', function () {
-            return 5;
-        }, [], 0);
+        $m->onHook('spot', fn () => 4, [], 0);
+        $m->onHook('spot', fn () => 5, [], 0);
 
-        $m->onHook('spot', function () {
-            return 10;
-        }, [], 1000);
+        $m->onHook('spot', fn () => 10, [], 1000);
 
-        $m->onHook('spot', function () {
-            return 6;
-        }, [], 2);
-        $m->onHook('spot', function () {
-            return 7;
-        }, [], 5);
-        $m->onHook('spot', function () {
-            return 8;
-        });
-        $m->onHook('spot', function () {
-            return 9;
-        }, [], 5);
+        $m->onHook('spot', fn () => 6, [], 2);
+        $m->onHook('spot', fn () => 7, [], 5);
+        $m->onHook('spot', fn () => 8);
+        $m->onHook('spot', fn () => 9, [], 5);
 
         $ret = $m->hook('spot');
 
@@ -150,12 +130,8 @@ class HookTraitTest extends \Phlex\Core\PHPUnit\TestCase
     {
         $obj = new HookMock();
 
-        $mulFunc = function ($obj, $a, $b) {
-            return $a * $b;
-        };
-        $addFunc = function ($obj, $a, $b) {
-            return $a + $b;
-        };
+        $mulFunc = fn ($obj, $a, $b) => $a * $b;
+        $addFunc = fn ($obj, $a, $b) => $a + $b;
 
         $obj->onHook('test', $mulFunc);
         $obj->onHook('test', $addFunc);
@@ -171,15 +147,9 @@ class HookTraitTest extends \Phlex\Core\PHPUnit\TestCase
     {
         $obj = new HookMock();
 
-        $mulFunc = function ($obj, $a, $b) {
-            return $a * $b;
-        };
-        $addFunc = function ($obj, $a, $b) {
-            return $a + $b;
-        };
-        $powFunc = function ($obj, $a, $b, $power) {
-            return $a ** $power + $b ** $power;
-        };
+        $mulFunc = fn ($obj, $a, $b) => $a * $b;
+        $addFunc = fn ($obj, $a, $b) => $a + $b;
+        $powFunc = fn ($obj, $a, $b, $power) => $a ** $power + $b ** $power;
 
         $obj->onHook('test', $mulFunc);
         $obj->onHook('test', $addFunc);
@@ -406,9 +376,7 @@ class HookTraitTest extends \Phlex\Core\PHPUnit\TestCase
 
         $value = 0;
         $m = new HookMock();
-        $m->onHookDynamic('inc', function () use ($m) {
-            return clone $m;
-        }, function ($ignoreObject, $ignore1st, int &$value) {
+        $m->onHookDynamic('inc', fn () => clone $m, function ($ignoreObject, $ignore1st, int &$value) {
             ++$value;
         });
         $m->hook('inc', ['x', &$value]);

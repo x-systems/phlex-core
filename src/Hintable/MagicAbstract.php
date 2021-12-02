@@ -32,7 +32,7 @@ abstract class MagicAbstract
 
     protected function _atk__core__hintable_magic__createNotSupportedException(): Exception
     {
-        $opName = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
+        $opName = debug_backtrace(\DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
 
         return (new Exception('Operation "' . $opName . '" is not supported'))
             ->addMoreInfo('target_class', $this->_atk__core__hintable_magic__class)

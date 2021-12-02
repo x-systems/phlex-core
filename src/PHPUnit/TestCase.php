@@ -43,9 +43,7 @@ class TestCase extends \PHPUnit\Framework\TestCase
      */
     public function &getProtected(object $obj, string $name)
     {
-        return \Closure::bind(static function &() use ($obj, $name) {
-            return $obj->{$name};
-        }, null, $obj)();
+        return \Closure::bind(static fn &() => $obj->{$name}, null, $obj)();
     }
 
     /**

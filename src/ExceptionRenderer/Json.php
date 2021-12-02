@@ -89,9 +89,7 @@ class Json extends RendererAbstract
             }
 
             if ($escape_frame) {
-                $call['args'] = array_map(function ($arg) {
-                    return static::toSafeString($arg);
-                }, $call['args']);
+                $call['args'] = array_map(fn ($arg) => static::toSafeString($arg), $call['args']);
             }
 
             $this->json['stack'][] = $call;
@@ -148,6 +146,6 @@ class Json extends RendererAbstract
             ];
         }
 
-        return (string) json_encode($this->json, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        return (string) json_encode($this->json, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_UNICODE);
     }
 }

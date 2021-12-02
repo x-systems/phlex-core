@@ -21,37 +21,34 @@ trait DynamicMethodTrait
      * Magic method - tries to call dynamic method and throws exception if
      * this was not possible.
      *
-     * @param string $name Name of the method
-     * @param array  $args Array of arguments to pass to this method
+     * @param string $methodName Name of the method
+     * @param array  $args       Array of arguments to pass to this method
      */
-    public function __call(string $name, $args)
+    public function __call(string $methodName, $args)
     {
-        if ($ret = $this->tryCall($name, $args)) {
+        if ($ret = $this->tryCall($methodName, $args)) {
             return reset($ret);
         }
 
-        throw (new Exception('Method ' . $name . ' is not defined for this object'))
+        throw (new Exception('Method ' . $methodName . ' is not defined for this object'))
             ->addMoreInfo('class', static::class)
-            ->addMoreInfo('method', $name)
+            ->addMoreInfo('method', $methodName)
             ->addMoreInfo('args', $args);
     }
 
-    private function buildMethodHookName(string $name, bool $isGlobal): string
+    private function getMethodHookName(string $methodName): string
     {
-        return '__atk__method__' . ($isGlobal ? 'g' : 'l') . '__' . $name;
+        return '__phlex__method__' . $methodName;
     }
 
     /**
      * Tries to call dynamic method.
      *
-     * @param string $name Name of the method
-     * @param array  $args Array of arguments to pass to this method
-     *
      * @return mixed
      */
-    public function tryCall($name, $args)
+    public function tryCall(string $methodName, $args)
     {
-        if (isset($this->_hookTrait) && $ret = $this->hook($this->buildMethodHookName($name, false), $args)) {
+        if (isset($this->_hookTrait) && $ret = $this->hook($this->getMethodHookName($methodName), $args)) {
             return $ret;
         }
 
@@ -68,48 +65,41 @@ trait DynamicMethodTrait
     /**
      * Add new method for this object.
      *
-     * @param string $name Name of new method of $this object
-     *
      * @return $this
      */
-    public function addMethod(string $name, \Closure $fx)
+    public function addMethod(string $methodName, \Closure $fx)
     {
         // HookTrait is mandatory
         if (!isset($this->_hookTrait)) {
             throw new Exception('Object must use hookTrait for Dynamic Methods to work');
         }
 
-        if ($this->hasMethod($name)) {
+        if ($this->hasMethod($methodName)) {
             throw (new Exception('Registering method twice'))
-                ->addMoreInfo('name', $name);
+                ->addMoreInfo('name', $methodName);
         }
 
-        $this->onHook($this->buildMethodHookName($name, false), $fx);
+        $this->onHook($this->getMethodHookName($methodName), $fx);
 
         return $this;
     }
 
     /**
      * Return if this object has specified method (either native or dynamic).
-     *
-     * @param string $name Name of the method
      */
-    public function hasMethod(string $name): bool
+    public function hasMethod(string $methodName): bool
     {
-        return method_exists($this, $name)
-            || (isset($this->_hookTrait) && $this->hookHasCallbacks($this->buildMethodHookName($name, false)))
-            || $this->hasGlobalMethod($name);
+        return method_exists($this, $methodName)
+            || (isset($this->_hookTrait) && $this->hookHasCallbacks($this->getMethodHookName($methodName)));
     }
 
     /**
      * Remove dynamically registered method.
-     *
-     * @param string $name Name of the method
      */
-    public function removeMethod(string $name)
+    public function removeMethod(string $methodName)
     {
         if (isset($this->_hookTrait)) {
-            $this->removeHook($this->buildMethodHookName($name, false));
+            $this->removeHook($this->getMethodHookName($methodName));
         }
 
         return $this;

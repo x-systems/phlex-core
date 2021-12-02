@@ -36,15 +36,11 @@ class MagicMethod extends MagicAbstract
         $cl = $this->_atk__core__hintable_magic__class;
 
         if ($this->_atk__core__hintable_magic__type === self::TYPE_METHOD_CLOSURE) {
-            return (static function () use ($cl, $name) {
-                return \Closure::fromCallable([$cl, $name]);
-            })();
+            return (static fn () => \Closure::fromCallable([$cl, $name]))();
         }
 
         if ($this->_atk__core__hintable_magic__type === self::TYPE_METHOD_CLOSURE_PROTECTED) {
-            return \Closure::bind(function () use ($cl, $name) {
-                return \Closure::fromCallable([$cl, $name]);
-            }, is_object($cl) ? $cl : null, $cl)();
+            return \Closure::bind(fn () => \Closure::fromCallable([$cl, $name]), is_object($cl) ? $cl : null, $cl)();
         }
 
         throw $this->_atk__core__hintable_magic__createNotSupportedException();
