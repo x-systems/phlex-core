@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Phlex\Core\Tests;
 
 use Phlex\Core;
+use Phlex\Core\TraitUtil;
 
 /**
  * @coversDefaultClass \Phlex\Core\ContainerTrait
@@ -17,7 +18,7 @@ class ContainerTraitTest extends \Phlex\Core\PHPUnit\TestCase
     public function testBasic()
     {
         $m = new ContainerMock();
-        $this->assertTrue(isset($m->_containerTrait));
+        $this->assertTrue(TraitUtil::hasContainerTrait($m));
 
         // add to return object
         $tr = $m->add($tr2 = new \StdClass());
@@ -127,7 +128,7 @@ class ContainerTraitTest extends \Phlex\Core\PHPUnit\TestCase
         // passing name with array key 'name'
         $m = new ContainerMock();
         $m2 = $m->add(new class() extends TrackableMock {
-            use Core\DiContainerTrait;
+            use Core\InjectableTrait;
         }, ['elementName' => 'foo']);
         $this->assertTrue($m->hasElement('foo'));
         $this->assertSame('foo', $m2->elementId);
@@ -195,7 +196,7 @@ class ContainerTraitTest extends \Phlex\Core\PHPUnit\TestCase
 // @codingStandardsIgnoreStart
 class TrackableMock
 {
-    use Core\DiContainerTrait;
+    use Core\InjectableTrait;
     use Core\TrackableTrait;
 }
 class ContainerFactoryMock

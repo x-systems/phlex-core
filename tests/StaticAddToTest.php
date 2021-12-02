@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace Phlex\Core\Tests;
 
 use Phlex\Core\ContainerTrait;
-use Phlex\Core\DiContainerTrait;
+use Phlex\Core\InjectableTrait;
 use Phlex\Core\StaticAddToTrait;
 use Phlex\Core\TrackableTrait;
+use Phlex\Core\TraitUtil;
 
 // @codingStandardsIgnoreStart
 class StdSat extends \StdClass
 {
-    use DiContainerTrait; // remove once PHP7.2 support is dropped
+    use InjectableTrait; // remove once PHP7.2 support is dropped
     use StaticAddToTrait;
 }
 
@@ -27,13 +28,13 @@ class ContainerFactoryMockSat
 
 class TrackableMockSat
 {
-    use DiContainerTrait;
+    use InjectableTrait;
     use StaticAddToTrait; // remove once PHP7.2 support is dropped
     use TrackableTrait;
 }
 class DiMockSat
 {
-    use DiContainerTrait;
+    use InjectableTrait;
     use StaticAddToTrait;
 
     public $a = 'AAA';
@@ -43,7 +44,7 @@ class DiMockSat
 
 class DiConstructorMockSat
 {
-    use DiContainerTrait;
+    use InjectableTrait;
     use StaticAddToTrait;
 
     public $a = 'AAA';
@@ -65,7 +66,7 @@ class StaticAddToTest extends \Phlex\Core\PHPUnit\TestCase
     public function testBasic()
     {
         $m = new ContainerMock();
-        $this->assertTrue(isset($m->_containerTrait));
+        $this->assertTrue(TraitUtil::hasContainerTrait($m));
 
         // add to return object
         $tr = StdSat::addTo($m);
@@ -99,7 +100,7 @@ class StaticAddToTest extends \Phlex\Core\PHPUnit\TestCase
     public function testWithClassName()
     {
         $m = new ContainerMock();
-        $this->assertTrue(isset($m->_containerTrait));
+        $this->assertTrue(TraitUtil::hasContainerTrait($m));
 
         // the same class
         $tr = StdSat::addToWithCl($m, [StdSat::class]);

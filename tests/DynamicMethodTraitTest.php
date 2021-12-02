@@ -36,33 +36,6 @@ class DynamicMethodTraitTest extends \Phlex\Core\PHPUnit\TestCase
         $m->unknownMethod();
     }
 
-    public function testException2()
-    {
-        // can't call method without HookTrait or AppScope+Hook traits
-        $this->expectException(Exception::class);
-        $m = new DynamicMethodWithoutHookMock();
-        $m->unknownMethod();
-    }
-
-    public function testException3()
-    {
-        // can't add method without HookTrait
-        $this->expectException(Exception::class);
-        $m = new DynamicMethodWithoutHookMock();
-        $m->addMethod('sum', function ($m, $a, $b) {
-            return $a + $b;
-        });
-    }
-
-    public function testException4()
-    {
-        // can't call method without HookTrait or AppScope+Hook traits
-        $this->expectException(Exception::class);
-        $m = new GlobalMethodObjectMock();
-        $m->setApp(new GlobalMethodAppMock());
-        $m->unknownMethod();
-    }
-
     /**
      * Test arguments.
      */
@@ -77,17 +50,6 @@ class DynamicMethodTraitTest extends \Phlex\Core\PHPUnit\TestCase
         $m = new DynamicMethodMock();
         $m->addMethod('getElementCount', \Closure::fromCallable([new ContainerMock(), 'getElementCount']));
         $this->assertSame(0, $m->getElementCount());
-    }
-
-    /**
-     * Can add, check and remove methods.
-     */
-    public function testWithoutHookTrait()
-    {
-        $m = new DynamicMethodWithoutHookMock();
-        $this->assertFalse($m->hasMethod('sum'));
-
-        $this->assertSame($m, $m->removeMethod('sum'));
     }
 
     public function testDoubleMethodException()
@@ -117,9 +79,7 @@ class DynamicMethodTraitTest extends \Phlex\Core\PHPUnit\TestCase
         // can't add global method without AppScopeTrait and HookTrait
         $this->expectException(Exception::class);
         $m = new DynamicMethodMock();
-        $m->addGlobalMethod('sum', function ($m, $obj, $a, $b) {
-            return $a + $b;
-        });
+        $m->addGlobalMethod('sum', fn ($m, $obj, $a, $b) => $a + $b);
     }
 
     /**
@@ -135,9 +95,7 @@ class DynamicMethodTraitTest extends \Phlex\Core\PHPUnit\TestCase
         $m2 = new GlobalMethodObjectMock();
         $m2->setApp($app);
 
-        $m->addGlobalMethod('sum', function ($m, $obj, $a, $b) {
-            return $a + $b;
-        });
+        $m->addGlobalMethod('sum', fn ($m, $obj, $a, $b) => $a + $b);
         $this->assertTrue($m->hasGlobalMethod('sum'));
 
         $res = $m2->sum(3, 5);
@@ -154,12 +112,8 @@ class DynamicMethodTraitTest extends \Phlex\Core\PHPUnit\TestCase
         $m = new GlobalMethodObjectMock();
         $m->setApp(new GlobalMethodAppMock());
 
-        $m->addGlobalMethod('sum', function ($m, $obj, $a, $b) {
-            return $a + $b;
-        });
-        $m->addGlobalMethod('sum', function ($m, $obj, $a, $b) {
-            return $a + $b;
-        });
+        $m->addGlobalMethod('sum', fn ($m, $obj, $a, $b) => $a + $b);
+        $m->addGlobalMethod('sum', fn ($m, $obj, $a, $b) => $a + $b);
     }
 }
 
@@ -168,10 +122,6 @@ class DynamicMethodMock
 {
     use DynamicMethodTrait;
     use HookTrait;
-}
-class DynamicMethodWithoutHookMock
-{
-    use DynamicMethodTrait;
 }
 
 class GlobalMethodObjectMock

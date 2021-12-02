@@ -32,15 +32,8 @@ use Illuminate\Support\Str;
  * Relying on this trait excessively may cause anger management issues to
  * some code reviewers.
  */
-trait DiContainerTrait
+trait InjectableTrait
 {
-    /**
-     * Check this property to see if trait is present in the object.
-     *
-     * @var bool
-     */
-    public $_DiContainerTrait = true;
-
     /**
      * Call from __construct() to initialize the properties allowing
      * developer to pass Dependency Injector Container.

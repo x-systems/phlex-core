@@ -10,12 +10,7 @@ namespace Phlex\Core;
  */
 trait DynamicMethodTrait
 {
-    /**
-     * Check this property to see if trait is present in the object.
-     *
-     * @var bool
-     */
-    public $_dynamicMethodTrait = true;
+    use HookTrait;
 
     /**
      * Magic method - tries to call dynamic method and throws exception if
@@ -36,9 +31,9 @@ trait DynamicMethodTrait
             ->addMoreInfo('args', $args);
     }
 
-    private function getMethodHookName(string $methodName): string
+    private function getMethodHookName(string $methodName, bool $global = false): string
     {
-        return '__phlex__method__' . $methodName;
+        return '__phlex__method__' . ($global ? 'g' : 'l') . '__' . $methodName;
     }
 
     /**
@@ -48,13 +43,13 @@ trait DynamicMethodTrait
      */
     public function tryCall(string $methodName, $args)
     {
-        if (isset($this->_hookTrait) && $ret = $this->hook($this->getMethodHookName($methodName), $args)) {
+        if (TraitUtil::hasHookTrait($this) && $ret = $this->hook($this->getMethodHookName($methodName), $args)) {
             return $ret;
         }
 
-        if (isset($this->_appScopeTrait) && isset($this->getApp()->_hookTrait)) {
+        if (TraitUtil::hasAppScopeTrait($this) && TraitUtil::hasHookTrait($this->getApp())) {
             array_unshift($args, $this);
-            if ($ret = $this->getApp()->hook($this->buildMethodHookName($name, true), $args)) {
+            if ($ret = $this->getApp()->hook($this->getMethodHookName($methodName, true), $args)) {
                 return $ret;
             }
         }
@@ -69,11 +64,6 @@ trait DynamicMethodTrait
      */
     public function addMethod(string $methodName, \Closure $fx)
     {
-        // HookTrait is mandatory
-        if (!isset($this->_hookTrait)) {
-            throw new Exception('Object must use hookTrait for Dynamic Methods to work');
-        }
-
         if ($this->hasMethod($methodName)) {
             throw (new Exception('Registering method twice'))
                 ->addMoreInfo('name', $methodName);
@@ -90,7 +80,7 @@ trait DynamicMethodTrait
     public function hasMethod(string $methodName): bool
     {
         return method_exists($this, $methodName)
-            || (isset($this->_hookTrait) && $this->hookHasCallbacks($this->getMethodHookName($methodName)));
+            || (TraitUtil::hasHookTrait($this) && $this->hookHasCallbacks($this->getMethodHookName($methodName)));
     }
 
     /**
@@ -98,7 +88,7 @@ trait DynamicMethodTrait
      */
     public function removeMethod(string $methodName)
     {
-        if (isset($this->_hookTrait)) {
+        if (TraitUtil::hasHookTrait($this)) {
             $this->removeHook($this->getMethodHookName($methodName));
         }
 
@@ -128,7 +118,7 @@ trait DynamicMethodTrait
     public function addGlobalMethod(string $name, \Closure $fx): void
     {
         // AppScopeTrait and HookTrait for app are mandatory
-        if (!isset($this->_appScopeTrait) || !isset($this->getApp()->_hookTrait)) {
+        if (!TraitUtil::hasAppScopeTrait($this) || !TraitUtil::hasHookTrait($this->getApp())) {
             throw new Exception('You need AppScopeTrait and HookTrait traits, see docs');
         }
 
@@ -137,7 +127,7 @@ trait DynamicMethodTrait
                 ->addMoreInfo('name', $name);
         }
 
-        $this->getApp()->onHook($this->buildMethodHookName($name, true), $fx);
+        $this->getApp()->onHook($this->getMethodHookName($name, true), $fx);
     }
 
     /**
@@ -147,9 +137,9 @@ trait DynamicMethodTrait
      */
     public function hasGlobalMethod(string $name): bool
     {
-        return isset($this->_appScopeTrait)
-            && isset($this->getApp()->_hookTrait)
-            && $this->getApp()->hookHasCallbacks($this->buildMethodHookName($name, true));
+        return TraitUtil::hasAppScopeTrait($this)
+            && TraitUtil::hasHookTrait($this->getApp())
+            && $this->getApp()->hookHasCallbacks($this->getMethodHookName($name, true));
     }
 
     /**
@@ -159,8 +149,8 @@ trait DynamicMethodTrait
      */
     public function removeGlobalMethod(string $name): void
     {
-        if (isset($this->_appScopeTrait) && isset($this->getApp()->_hookTrait)) {
-            $this->getApp()->removeHook($this->buildMethodHookName($name, true));
+        if (TraitUtil::hasAppScopeTrait($this) && TraitUtil::hasHookTrait($this->getApp())) {
+            $this->getApp()->removeHook($this->getMethodHookName($name, true));
         }
     }
 }

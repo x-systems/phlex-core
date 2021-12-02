@@ -140,8 +140,8 @@ class Factory
         }
 
         if (count($injection) > 0) {
-            if (!isset($obj->_DiContainerTrait)) {
-                throw (new Exception('Property injection is possible only to objects that use \Phlex\Core\DiContainerTrait trait'))
+            if (!TraitUtil::hasInjectableTrait($obj)) {
+                throw (new Exception('Property injection is possible only to objects that use \Phlex\Core\InjectableTrait trait'))
                     ->addMoreInfo('object', $obj)
                     ->addMoreInfo('injection', $injection);
             }

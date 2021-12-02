@@ -7,11 +7,11 @@ namespace Phlex\Core;
 /**
  * Trait StaticAddToTrait.
  *
- * Intended to be always used with DiContainerTrait trait.
+ * Intended to be always used with InjectableTrait trait.
  */
 trait StaticAddToTrait
 {
-    // use DiContainerTrait; // uncomment once PHP7.2 support is dropped
+    use InjectableTrait;
 
     /**
      * Check this property to see if trait is present in the object.

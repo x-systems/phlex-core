@@ -14,13 +14,6 @@ trait TrackableTrait
     use NameTrait;
 
     /**
-     * Check this property to see if trait is present in the object.
-     *
-     * @var bool
-     */
-    public $_trackableTrait = true;
-
-    /**
      * @internal to be removed in Jan 2021, keep until then to prevent wrong assignments
      *
      * @var object
@@ -126,11 +119,11 @@ trait TrackableTrait
      */
     public function destroy(): void
     {
-        if ($this->elementOwner !== null && isset($this->elementOwner->_containerTrait)) {
+        if ($this->elementOwner !== null && TraitUtil::hasContainerTrait($this->elementOwner)) {
             $this->elementOwner->removeElement($this->elementId);
 
             // GC remove reference to app is AppScope in use
-            if (isset($this->_appScopeTrait) && $this->issetApp()) {
+            if (TraitUtil::hasAppScopeTrait($this) && $this->issetApp()) {
                 $this->_app = null;
             }
 

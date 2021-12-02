@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Phlex\Core\Tests;
 
-use Phlex\Core\DiContainerTrait;
 use Phlex\Core\Exception;
 use Phlex\Core\Factory;
 use Phlex\Core\HookBreaker;
+use Phlex\Core\InjectableTrait;
 
 /**
  * @coversDefaultClass \Phlex\Core\Factory
@@ -521,12 +521,12 @@ class FactoryTestMock
 
 class FactoryTestDiMock extends FactoryTestMock
 {
-    use DiContainerTrait;
+    use InjectableTrait;
 }
 
 class FactoryTestViewMock extends FactoryTestMock
 {
-    use DiContainerTrait {
+    use InjectableTrait {
         setDefaults as _setDefaults;
     }
     public $def;
@@ -548,7 +548,7 @@ class FactoryTestViewMock extends FactoryTestMock
 
 class FactoryTestDefMock extends FactoryTestMock
 {
-    use DiContainerTrait {
+    use InjectableTrait {
         setDefaults as _setDefaults;
     }
     public $def;
@@ -568,7 +568,7 @@ class FactoryFactoryMock
 
 class FactoryFactoryDiMock
 {
-    use DiContainerTrait;
+    use InjectableTrait;
 
     public $a = 'AAA';
     public $b = 'BBB';

@@ -6,12 +6,7 @@ namespace Phlex\Core;
 
 trait SessionTrait
 {
-    /**
-     * Check this property to see if trait is present in the object.
-     *
-     * @var bool
-     */
-    public $_sessionTrait = true;
+    use NameTrait;
 
     /**
      * Session container key.
@@ -27,12 +22,6 @@ trait SessionTrait
      */
     public function startSession(array $options = [])
     {
-        // all methods use this method to start session, so we better check
-        // NameTrait existence here in one place.
-        if (!isset($this->_nameTrait)) {
-            throw new Exception('Object should have NameTrait applied to use session');
-        }
-
         switch (session_status()) {
             case \PHP_SESSION_DISABLED:
                 // @codeCoverageIgnoreStart - impossible to test

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Phlex\Core\Tests;
 
-use Phlex\Core\Exception;
 use Phlex\Core\NameTrait;
 use Phlex\Core\SessionTrait;
 
@@ -38,14 +37,6 @@ class SessionTraitTest extends \Phlex\Core\PHPUnit\TestCase
         }
 
         rmdir($sessionDir);
-    }
-
-    public function testException1()
-    {
-        // when try to start session without NameTrait
-        $this->expectException(Exception::class);
-        $m = new SessionWithoutNameMock();
-        $m->startSession();
     }
 
     /**
@@ -126,10 +117,6 @@ class SessionTraitTest extends \Phlex\Core\PHPUnit\TestCase
 class SessionMock
 {
     use NameTrait;
-    use SessionTrait;
-}
-class SessionWithoutNameMock
-{
     use SessionTrait;
 }
 // @codingStandardsIgnoreEnd

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Phlex\Core\ExceptionRenderer;
 
 use Phlex\Core\Exception;
+use Phlex\Core\TraitUtil;
 
 abstract class RendererAbstract
 {
@@ -89,7 +90,7 @@ abstract class RendererAbstract
 
         if ($parsed['object'] !== null) {
             $objProps = get_object_vars($parsed['object']);
-            $parsed['object_formatted'] = isset($objProps['_trackableTrait'])
+            $parsed['object_formatted'] = TraitUtil::hasTrackableTrait($parsed['object'])
                 ? $objProps['elementName']
                 : get_class($parsed['object']);
         }
@@ -104,7 +105,7 @@ abstract class RendererAbstract
         } elseif (is_object($val)) {
             $objProps = get_object_vars($val);
 
-            return get_class($val) . (isset($objProps['_trackableTrait']) ? ' (' . $objProps['elementName'] . ')' : '');
+            return get_class($val) . (TraitUtil::hasTrackableTrait($val) ? ' (' . $objProps['elementName'] . ')' : '');
         } elseif (is_resource($val)) {
             return 'resource';
         } elseif (is_scalar($val) || $val === null) {

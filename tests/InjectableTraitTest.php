@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Phlex\Core\Tests;
 
-use Phlex\Core\DiContainerTrait;
 use Phlex\Core\Exception;
+use Phlex\Core\InjectableTrait;
 
 /**
- * @coversDefaultClass \Phlex\Core\DiContainerTrait
+ * @coversDefaultClass \Phlex\Core\InjectableTrait
  */
-class DiContainerTraitTest extends \Phlex\Core\PHPUnit\TestCase
+class InjectableTraitTest extends \Phlex\Core\PHPUnit\TestCase
 {
     public function testFromSeed()
     {
@@ -95,7 +95,7 @@ class DiContainerTraitTest extends \Phlex\Core\PHPUnit\TestCase
 // @codingStandardsIgnoreStart
 class FactoryDiMock2
 {
-    use DiContainerTrait;
+    use InjectableTrait;
 
     public $a = 'AAA';
     public $b = 'BBB';
@@ -120,6 +120,6 @@ class FactoryDiMockConstructorMustNeverBeCalled
 
 class FactoryDiMockConstructorMustNeverBeCalled2 extends FactoryDiMockConstructorMustNeverBeCalled
 {
-    use DiContainerTrait;
+    use InjectableTrait;
 }
 // @codingStandardsIgnoreEnd

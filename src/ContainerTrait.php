@@ -11,13 +11,6 @@ namespace Phlex\Core;
 trait ContainerTrait
 {
     /**
-     * Check this property to see if trait is present in the object.
-     *
-     * @var bool
-     */
-    public $_containerTrait = true;
-
-    /**
      * elementId => object hash of children objects. If the child is not
      * trackable, then object will be set to "true" (to avoid extra reference).
      *
@@ -66,7 +59,7 @@ trait ContainerTrait
         }
         $obj = $this->_add_Container($obj, $args);
 
-        if (isset($obj->_initializerTrait)) {
+        if (TraitUtil::hasInitializerTrait($obj)) {
             if (!$obj->isInitialized()) {
                 $obj->initialize();
             }
@@ -84,12 +77,12 @@ trait ContainerTrait
     protected function _add_Container(object $element, $args = []): object
     {
         // Carry on reference to application if we have appScopeTraits set
-        if (isset($this->_appScopeTrait) && isset($element->_appScopeTrait)) {
+        if (TraitUtil::hasAppScopeTrait($this) && TraitUtil::hasAppScopeTrait($element)) {
             $element->setApp($this->getApp());
         }
 
         // If element is not trackable, then we don't need to do anything with it
-        if (!isset($element->_trackableTrait)) {
+        if (!TraitUtil::hasTrackableTrait($element)) {
             return $element;
         }
 
@@ -127,7 +120,7 @@ trait ContainerTrait
 
         $element->setOwner($this);
         $element->elementId = $args[0];
-        if (isset($this->_nameTrait)) {
+        if (TraitUtil::hasNameTrait($this)) {
             $element->elementName = $this->_shorten($this->elementName . '_' . $element->elementId);
         }
         $this->elements[$element->elementId] = $element;
@@ -174,7 +167,7 @@ trait ContainerTrait
      */
     protected function _shorten(string $desiredName): string
     {
-        if (isset($this->_appScopeTrait)
+        if (TraitUtil::hasAppScopeTrait($this)
             && isset($this->getApp()->max_name_length)
             && mb_strlen($desiredName) > $this->getApp()->max_name_length) {
             /*
