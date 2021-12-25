@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Phlex\Core\Tests;
 
 use Phlex\Core\Exception;
+use Phlex\Core\InheritableRegistryTrait;
 use Phlex\Core\InjectableTrait;
 
 /**
@@ -90,6 +91,14 @@ class InjectableTraitTest extends \Phlex\Core\PHPUnit\TestCase
         $m->setDefaults(['testSetter' => 'new_value'], true);
         $this->assertSame([$m->testSetter], ['correct_value']);
     }
+
+    public function testInheritedRegistry()
+    {
+        $m = new FactoryDiMock3();
+
+        $this->assertFalse($m->inheritableOptions['aaa']);
+        $this->assertTrue($m->inheritableOptions['bbb']);
+    }
 }
 
 // @codingStandardsIgnoreStart
@@ -101,12 +110,30 @@ class FactoryDiMock2
     public $b = 'BBB';
     public $c;
     public $testSetter;
+    public $inheritableOptions = [
+        'aaa' => false,
+        'bbb' => false,
+    ];
 
     public function setTestSetter($value)
     {
         $this->testSetter = 'correct_' . $value;
 
         return $this;
+    }
+}
+
+class FactoryDiMock3 extends FactoryDiMock2
+{
+    use InheritableRegistryTrait;
+
+    public $inheritableOptions = [
+        'bbb' => true,
+    ];
+
+    public function __construct()
+    {
+        $this->inheritRegistry('inheritableOptions');
     }
 }
 
