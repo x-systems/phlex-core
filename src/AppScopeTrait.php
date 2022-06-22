@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Phlex\Core;
 
 /**
- * Typical software design will create the application scope. Most frameworks
+ * Typical software design will create the webpage scope. Most frameworks
  * relies on "static" properties, methods and classes. This does puts some
- * limitations on your implementation (you can't have multiple applications).
+ * limitations on your implementation (you can't have multiple webpages).
  *
  * App Scope will pass the 'app' property into all the object that you're
- * adding, so that you know for sure which application you work with.
+ * adding, so that you know for sure which webpage you work with.
  */
 trait AppScopeTrait
 {
@@ -20,9 +20,9 @@ trait AppScopeTrait
     private $app;
 
     /**
-     * Always points to current application.
+     * Always points to current webpage.
      *
-     * @var \Phlex\Ui\App
+     * @var \Phlex\Ui\Webpage
      */
     private $_app;
 
@@ -60,12 +60,12 @@ trait AppScopeTrait
 
     private function assertInstanceOfApp(object $app): void
     {
-        // called from phpunit, allow to use/test this trait without \Phlex\Ui\App class
+        // called from phpunit, allow to use/test this trait without \Phlex\Ui\Webpage class
         if (class_exists(\PHPUnit\Framework\TestCase::class, false)) {
             return;
         }
 
-        if (!$app instanceof \Phlex\Ui\App) {
+        if (!$app instanceof \Phlex\Ui\Webpage) {
             throw new Exception('App must be instance of \Phlex\Ui\App');
         }
     }
@@ -88,7 +88,7 @@ trait AppScopeTrait
     }
 
     /**
-     * @return \Phlex\Ui\App
+     * @return \Phlex\Ui\Webpage
      */
     public function getApp()
     {
@@ -99,7 +99,7 @@ trait AppScopeTrait
     }
 
     /**
-     * @param \Phlex\Ui\App $app
+     * @param \Phlex\Ui\Webpage $app
      *
      * @return static
      */
