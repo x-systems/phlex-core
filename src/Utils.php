@@ -19,7 +19,7 @@ final class Utils
      */
     public static function getReadableCaption(string $s): string
     {
-        //$s = 'this\\ _isNASA_MyBigBull shit_123\Foo';
+        // $s = 'this\\ _isNASA_MyBigBull shit_123\Foo';
 
         // first remove not allowed characters and uppercase words
         $words = ucwords(preg_replace('/[^a-z0-9]+/i', ' ', $s));
@@ -36,9 +36,9 @@ final class Utils
             return $registry[$searchClass];
         }
 
-        foreach ($registry as $mapClass => $seed) {
-            if (is_string($mapClass) && is_a($searchClass, $mapClass, true)) {
-                return $seed;
+        foreach (class_exists($searchClass) ? class_parents($searchClass) : [] as $parentClass) {
+            if (array_key_exists($parentClass, $registry)) {
+                return $registry[$parentClass];
             }
         }
 
