@@ -36,7 +36,7 @@ final class Utils
             return $registry[$searchClass];
         }
 
-        foreach (class_exists($searchClass) ? class_parents($searchClass) : [] as $parentClass) {
+        foreach (class_exists($searchClass) ? array_merge(class_implements($searchClass), class_parents($searchClass)) : [] as $parentClass) {
             if (array_key_exists($parentClass, $registry)) {
                 return $registry[$parentClass];
             }
