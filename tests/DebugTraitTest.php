@@ -6,126 +6,88 @@ namespace Phlex\Core\Tests;
 
 use Phlex\Core\AppScopeTrait;
 use Phlex\Core\DebugTrait;
+use Phlex\Core\Phpunit\TestCase;
+use Psr\Log\LoggerInterface;
+use Psr\Log\LoggerTrait;
 
-/**
- * @coversDefaultClass \Phlex\Core\DebugTrait
- */
-class DebugTraitTest extends \Phlex\Core\PHPUnit\TestCase
+class DebugTraitTest extends TestCase
 {
-    /**
-     * Test debug().
-     */
-    public function testDebug()
+    public function testDebug(): void
     {
         $m = new DebugMock();
 
-        $this->assertFalse($m->debug);
-
-        $m->debug();
-        $this->assertTrue($m->debug);
-
-        $m->debug(false);
-        $this->assertFalse($m->debug);
+        self::assertFalse($m->debug);
 
         $m->debug(true);
-        $this->assertTrue($m->debug);
+        self::assertTrue($m->debug);
+
+        $m->debug(false);
+        self::assertFalse($m->debug);
+
+        $m->debug(true);
+        self::assertTrue($m->debug);
     }
 
-    public function testDebugOutput()
+    public function testDebugOutput(): void
     {
-        $this->expectOutputString("[Phlex\\Core\\Tests\\DebugMock]: debug test1\n");
-
         $m = new DebugMock();
-        $m->debug();
+        $m->debug(true);
 
+        $this->expectOutputString("[Phlex\\Core\\Tests\\DebugMock]: debug test1\n");
         $m->debug('debug test1');
     }
 
-    public function testDebugNoOutput()
+    public function testDebugNoOutput(): void
     {
-        $this->expectOutputString('');
-
         $m = new DebugMock();
 
+        $this->expectOutputString('');
         $m->debug('debug test2');
     }
 
-    public function testDebugApp()
+    public function testDebugApp(): void
     {
-        $this->expectOutputString('');
-
         $app = new DebugAppMock();
         $app->logger = $app;
 
         $m = new DebugMock();
         $m->setApp($app);
-        $m->debug();
+        $m->debug(true);
 
+        $this->expectOutputString('');
         $m->debug('debug test2');
 
-        $this->assertSame(['debug', 'debug test2', []], $app->log);
+        self::assertSame(['debug', 'debug test2', []], $app->log);
     }
 
-    public function testLog1()
+    public function testLog1(): void
     {
+        $m = new DebugMock();
+
         $this->expectOutputString("debug test3\n");
-
-        $m = new DebugMock();
         $m->log('warning', 'debug test3');
     }
 
-    public function testLog2()
+    public function testLog2(): void
     {
-        $this->expectOutputString('');
-
         $app = new DebugAppMock();
         $app->logger = $app;
 
         $m = new DebugMock();
         $m->setApp($app);
+
+        $this->expectOutputString('');
         $m->log('warning', 'debug test3');
 
-        $this->assertSame(['warning', 'debug test3', []], $app->log);
+        self::assertSame(['warning', 'debug test3', []], $app->log);
     }
 
-    public function testMessage1()
+    protected function triggerDebugTraceChange(DebugMock $o, string $trace): void
     {
-        $this->expectOutputString("Could not notify user about: hello user\n");
-
-        $m = new DebugMock();
-        $m->userMessage('hello user');
+        $o->debugTraceChange($trace);
     }
 
-    public function testMessage2()
-    {
-        $this->expectOutputString('');
-        $app = new DebugAppMock();
-
-        $m = new DebugMock();
-        $m->setApp($app);
-        $m->userMessage('hello user');
-
-        $this->assertSame(['warning', 'Could not notify user about: hello user', []], $app->log);
-    }
-
-    public function testMessage3()
-    {
-        $this->expectOutputString('');
-        $app = new DebugAppMock2();
-
-        $m = new DebugMock();
-        $m->setApp($app);
-        $m->userMessage('hello user');
-
-        $this->assertSame(['hello user', []], $app->message);
-    }
-
-    protected function triggerDebugTraceChange($o, $label)
-    {
-        $o->debugTraceChange($label);
-    }
-
-    public function testTraceChange()
+    public function testTraceChange(): void
     {
         $app = new DebugAppMock();
 
@@ -136,15 +98,11 @@ class DebugTraitTest extends \Phlex\Core\PHPUnit\TestCase
         $this->triggerDebugTraceChange($m, 'test1'); // difference is 1 line between calls
         $this->triggerDebugTraceChange($m, 'test1');
 
-        $pattern = '/Call path for .* has diverged \(was (.*):(.*), now (.*):(.*)\)/';
-        $matches = [];
-        preg_match($pattern, $app->log[1], $matches);
-
-        // Changes detected
-        $this->assertTrue(is_array($matches));
-        $this->assertSame(5, count($matches));
-        $this->assertSame($matches[1], $matches[3]);
-        $this->assertSame((string) ($matches[2] + 1), $matches[4]);
+        // changes detected
+        preg_match('~Call path for .* has diverged \(was (.*):(.*), now (.*):(.*)\)~', $app->log[1], $matches);
+        self::assertCount(5, $matches);
+        self::assertSame($matches[1], $matches[3]);
+        self::assertSame((string) ((int) $matches[2] + 1), $matches[4]);
 
         $app->log = null;
 
@@ -152,82 +110,74 @@ class DebugTraitTest extends \Phlex\Core\PHPUnit\TestCase
             $this->triggerDebugTraceChange($m, 'test2'); // called from same line all 5 times = no difference
         }
 
-        // No changes in the trace change detected
-        $this->assertNull($app->log);
+        // no changes in the trace change detected
+        self::assertNull($app->log);
     }
 
-    public function testPsr()
+    public function testPsr(): void
     {
         $app = new DebugAppMock();
 
-        $m = new PsrMock();
+        $m = new DebugPsrMock();
         $app->logger = $app;
         $m->setApp($app);
 
         $m->info('i', ['x']);
-        $this->assertSame(['info', 'i', ['x']], $app->log);
+        self::assertSame(['info', 'i', ['x']], $app->log);
 
         $m->warning('t', ['x']);
-        $this->assertSame(['warning', 't', ['x']], $app->log);
+        self::assertSame(['warning', 't', ['x']], $app->log);
 
         $m->emergency('em', ['x', 'y']);
-        $this->assertSame(['emergency', 'em', ['x', 'y']], $app->log);
+        self::assertSame(['emergency', 'em', ['x', 'y']], $app->log);
 
         $m->alert('al', ['x']);
-        $this->assertSame(['alert', 'al', ['x']], $app->log);
+        self::assertSame(['alert', 'al', ['x']], $app->log);
 
         $m->critical('cr', ['x']);
-        $this->assertSame(['critical', 'cr', ['x']], $app->log);
+        self::assertSame(['critical', 'cr', ['x']], $app->log);
 
         $m->error('er', ['x']);
-        $this->assertSame(['error', 'er', ['x']], $app->log);
+        self::assertSame(['error', 'er', ['x']], $app->log);
 
         $m->notice('nt', ['x']);
-        $this->assertSame(['notice', 'nt', ['x']], $app->log);
+        self::assertSame(['notice', 'nt', ['x']], $app->log);
     }
 }
 
-// @codingStandardsIgnoreStart
 class DebugMock
 {
     use AppScopeTrait;
-    use DebugTrait {
-        _echo_stderr as __echo_stderr;
-    }
+    use DebugTrait;
 
-    protected function _echo_stderr($message)
+    protected function _echoStderr(string $message): void
     {
         echo $message;
     }
 }
 
-class DebugAppMock implements \Psr\Log\LoggerInterface
+class DebugAppMock implements LoggerInterface
 {
-    use \Psr\Log\LoggerTrait;
+    use LoggerTrait;
 
+    /** @var array<int, mixed>|null */
     public $log;
+    /** @var self */
     public $logger;
 
-    public function log($level, $message, array $context = [])
+    /**
+     * @param mixed              $level
+     * @param string|\Stringable $message
+     */
+    #[\Override]
+    public function log($level, $message, array $context = []): void
     {
         $this->log = [$level, $message, $context];
     }
 }
 
-class DebugAppMock2 implements \Phlex\Core\AppUserNotificationInterface
-{
-    public $message;
-
-    public function userNotification(string $message, array $context = []): void
-    {
-        $this->message = [$message, $context];
-    }
-}
-
-class PsrMock implements \Psr\Log\LoggerInterface
+class DebugPsrMock implements LoggerInterface
 {
     use AppScopeTrait;
     use DebugTrait;
 }
-
-// @codingStandardsIgnoreEnd

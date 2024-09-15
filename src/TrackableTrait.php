@@ -13,62 +13,37 @@ trait TrackableTrait
 {
     use NameTrait;
 
-    /**
-     * @internal to be removed in Jan 2021, keep until then to prevent wrong assignments
-     *
-     * @var object
-     */
-    private $owner;
+    /** @var QuietObjectWrapper<object>|null Link to (owner) object into which we added this object. */
+    private ?QuietObjectWrapper $_owner = null;
 
-    /**
-     * Link to (parent) object into which we added this object.
-     *
-     * @var object
-     */
-    private $elementOwner;
-
-    /**
-     * ID of the object in owner's element array.
-     *
-     * @var string
-     */
-    public $elementId;
-
-    /**
-     * To be removed in Jan 2021.
-     */
-    private function assertNoDirectOwnerAssignment(): void
-    {
-        if ($this->owner !== null) {
-            throw new Exception('Owner can not be assigned directly');
-        }
-    }
+    /** @var non-falsy-string Name of the object in owner's element array. */
+    public string $elementId;
 
     public function issetOwner(): bool
     {
-        $this->assertNoDirectOwnerAssignment();
-
-        return $this->elementOwner !== null;
+        return $this->_owner !== null;
     }
 
     public function getOwner(): object
     {
-        $this->assertNoDirectOwnerAssignment();
+        $owner = $this->_owner;
+        if ($owner === null) {
+            throw new Exception('Owner is not set');
+        }
 
-        return $this->elementOwner;
+        return $owner->get();
     }
 
     /**
-     * @return static
+     * @return $this
      */
     public function setOwner(object $owner)
     {
-        $this->assertNoDirectOwnerAssignment();
         if ($this->issetOwner()) {
-            throw new Exception('Owner already set');
+            throw new Exception('Owner is already set');
         }
 
-        $this->elementOwner = $owner;
+        $this->_owner = new QuietObjectWrapper($owner);
 
         return $this;
     }
@@ -76,16 +51,13 @@ trait TrackableTrait
     /**
      * Should be used only when object is cloned.
      *
-     * @return static
+     * @return $this
      */
     public function unsetOwner()
     {
-        $this->assertNoDirectOwnerAssignment();
-        if (!$this->issetOwner()) {
-            throw new Exception('Owner not set');
-        }
+        $this->getOwner(); // assert owner is set
 
-        $this->elementOwner = null;
+        $this->_owner = null;
 
         return $this;
     }
@@ -97,20 +69,9 @@ trait TrackableTrait
     public function getDesiredName(): string
     {
         // can be anything, but better to build meaningful name
-        $name = static::class;
-        if (strpos($name, 'class@anonymous') === 0) {
-            $name = '';
-            foreach (class_parents(static::class) as $v) {
-                if (strpos($v, 'class@anonymous') !== 0) {
-                    $name = $v;
+        $name = get_debug_type($this);
 
-                    break;
-                }
-            }
-            $name .= '@anonymous';
-        }
-
-        return trim(preg_replace('~^phlex\\\\[^\\\\]+\\\\|[^0-9a-z\x7f-\xfe]+~s', '_', mb_strtolower($name)), '_');
+        return trim(preg_replace('~^phlex\\\[^\\\]+\\\|[^0-9a-z\x7f-\xfe]+~s', '_', mb_strtolower($name)), '_');
     }
 
     /**
@@ -119,16 +80,16 @@ trait TrackableTrait
      */
     public function destroy(): void
     {
-        if ($this->elementOwner !== null && TraitUtil::hasContainerTrait($this->elementOwner)) {
-            $this->elementOwner->removeElement($this->elementId);
+        if ($this->_owner !== null && TraitUtil::hasContainerTrait($this->_owner->get())) {
+            $this->_owner->get()->removeElement($this->elementId);
 
             // GC remove reference to app is AppScope in use
             if (TraitUtil::hasAppScopeTrait($this) && $this->issetApp()) {
-                $this->_app = null;
+                $this->_app = null; // @phpstan-ignore property.notFound
             }
 
-            // GC : remove reference to owner
-            $this->elementOwner = null;
+            // GC remove reference to owner
+            $this->_owner = null;
         }
     }
 }

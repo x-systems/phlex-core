@@ -1,6 +1,3 @@
-ignore:
-  - docs
-  - examples
 comment: false
 coverage:
   status:

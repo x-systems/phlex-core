@@ -6,19 +6,19 @@ namespace Phlex\Core\Hintable;
 
 class Method
 {
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * Returns a magic class, document it using phpdoc as an instance of the target class,
      * any method call returns its (short) name.
      *
-     * @param object|string $targetClass
+     * @template T of object
+     *
+     * @param T|class-string<T> $targetClass
      *
      * @return object
      *
-     * @phpstan-return MagicMethod<object, string>
+     * @phpstan-return MagicMethod<T, string>
      */
     public static function methodName($targetClass)
     {
@@ -31,11 +31,13 @@ class Method
      * Returns a magic class, document it using phpdoc as an instance of the target class,
      * any method call returns its full name, ie. class name + "::" + short name.
      *
-     * @param object|string $targetClass
+     * @template T of object
+     *
+     * @param T|class-string<T> $targetClass
      *
      * @return object
      *
-     * @phpstan-return MagicMethod<object, string>
+     * @phpstan-return MagicMethod<T, string>
      */
     public static function methodNameFull($targetClass)
     {
@@ -48,11 +50,13 @@ class Method
      * Returns a magic class, document it using phpdoc as an instance of the target class,
      * any method call returns its Closure bound to static.
      *
-     * @param object|string $targetClass string is supported only for static methods
+     * @template T of object
+     *
+     * @param T|class-string<T> $targetClass string is supported only for static methods
      *
      * @return object
      *
-     * @phpstan-return MagicMethod<object, \Closure>
+     * @phpstan-return MagicMethod<T, \Closure>
      */
     public static function methodClosure($targetClass)
     {
@@ -65,11 +69,13 @@ class Method
      * Returns a magic class, document it using phpdoc as an instance of the target class,
      * any method call returns its Closure bound to the target class.
      *
-     * @param object|string $targetClass string is supported only for static methods
+     * @template T of object
+     *
+     * @param T|class-string<T> $targetClass string is supported only for static methods
      *
      * @return object
      *
-     * @phpstan-return MagicMethod<object, \Closure>
+     * @phpstan-return MagicMethod<T, \Closure>
      */
     public static function methodClosureProtected($targetClass)
     {

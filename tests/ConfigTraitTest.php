@@ -5,18 +5,14 @@ declare(strict_types=1);
 namespace Phlex\Core\Tests;
 
 use Phlex\Core\ConfigTrait;
+use Phlex\Core\Exception;
+use Phlex\Core\Phpunit\TestCase;
 
-/**
- * @coversDefaultClass \Phlex\Core\ConfigTrait
- */
-class ConfigTraitTest extends \Phlex\Core\PHPUnit\TestCase
+class ConfigTraitTest extends TestCase
 {
-    public $dir = __DIR__ . '/config_test';
+    public string $dir = __DIR__ . '/config_test';
 
-    /**
-     * Test file reader.
-     */
-    public function testFileRead()
+    public function testFileRead(): void
     {
         // for php
         $a = [
@@ -65,42 +61,47 @@ class ConfigTraitTest extends \Phlex\Core\PHPUnit\TestCase
         // default config
         $m = new ConfigMock();
         $m->readConfig($this->dir . '/config.php', 'php');
-        $this->{'assertEquals'}($a, $this->getProtected($m, 'config'));
+        self::{'assertEquals'}($a, $m->getConfigProp());
 
         // json config
         $m = new ConfigMock();
         $m->readConfig($this->dir . '/config.json', 'json');
-        $this->{'assertEquals'}($b, $this->getProtected($m, 'config'));
+        self::{'assertEquals'}($b, $m->getConfigProp());
 
         // yaml config
         $m = new ConfigMock();
         $m->readConfig($this->dir . '/config.yml', 'yaml');
-        //var_dump($this->getProtected($m, 'config'));
-        $this->{'assertEquals'}($c, $this->getProtected($m, 'config'));
+        self::{'assertEquals'}($c, $m->getConfigProp());
     }
 
-    public function testFileReadException()
+    public function testFileReadException(): void
     {
-        $this->expectException(\Phlex\Core\Exception::class);
         $m = new ConfigMock();
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Cannot read config file');
         $m->readConfig('unknown_file.php');
     }
 
-    public function testFileBadFormatException()
+    public function testFileBadFormatException(): void
     {
-        $this->expectException(\Phlex\Core\Exception::class);
         $m = new ConfigMock();
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('File was read but has a bad format');
         $m->readConfig($this->dir . '/config_bad_format.php');
     }
 
-    public function testWrongFileFormatException()
+    public function testWrongFileFormatException(): void
     {
-        $this->expectException(\Phlex\Core\Exception::class);
         $m = new ConfigMock();
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Unknown Format. Allowed formats: php, json, yml');
         $m->readConfig($this->dir . '/config.yml', 'wrong-format');
     }
 
-    public function testSetGetConfig()
+    public function testSetGetConfig(): void
     {
         $a = [
             'num' => 789,
@@ -126,38 +127,44 @@ class ConfigTraitTest extends \Phlex\Core\PHPUnit\TestCase
         $m = new ConfigMock();
         $m->readConfig($this->dir . '/config.php', 'php');
 
-        $m->setConfig('num', 789);       // overwrite
-        $m->setConfig('name', 'John');   // add
+        $m->setConfig('num', 789); // overwrite
+        $m->setConfig('name', 'John'); // add
         $m->setConfig([
-            'obj' => null,          // overwrite
-            'arr/txt' => 'qwerty',      // overwrite
-            'arr/name' => 'Jane',        // add
-            'arr/sub/one' => 'more',        // add in deep structure
-            'arr/sub/two' => 'another',     // add one more in deep structure
+            'obj' => null, // overwrite
+            'arr/txt' => 'qwerty', // overwrite
+            'arr/name' => 'Jane', // add
+            'arr/sub/one' => 'more', // add in deep structure
+            'arr/sub/two' => 'another', // add one more in deep structure
             'arr' => ['foo' => 'bar'], // merge arrays
         ]);
-        $this->{'assertEquals'}($a, $this->getProtected($m, 'config'));
+        self::{'assertEquals'}($a, $m->getConfigProp());
 
         // test getConfig
-        $this->assertSame(789, $m->getConfig('num'));
-        $this->assertNull($m->getConfig('unknown'));
-        $this->assertSame('default', $m->getConfig('unknown', 'default'));
-        $this->assertSame('another', $m->getConfig('arr/sub/two', 'default'));
-        $this->assertSame('default', $m->getConfig('arr/sub/three', 'default'));
+        self::assertSame(789, $m->getConfig('num'));
+        self::assertNull($m->getConfig('unknown'));
+        self::assertSame('default', $m->getConfig('unknown', 'default'));
+        self::assertSame('another', $m->getConfig('arr/sub/two', 'default'));
+        self::assertSame('default', $m->getConfig('arr/sub/three', 'default'));
     }
 
-    public function testCaseGetConfigPathThatNotExists()
+    public function testCaseGetConfigPathThatNotExists(): void
     {
         $m = new ConfigMock();
         $m->readConfig($this->dir . '/config.php', 'php');
         $excepted = $m->getConfig('arr/num/notExists');
-        $this->assertNull($excepted);
+        self::assertNull($excepted);
     }
 }
 
-// @codingStandardsIgnoreStart
 class ConfigMock
 {
     use ConfigTrait;
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getConfigProp(): array
+    {
+        return $this->config;
+    }
 }
-// @codingStandardsIgnoreEnd

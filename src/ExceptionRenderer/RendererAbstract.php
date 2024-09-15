@@ -4,27 +4,33 @@ declare(strict_types=1);
 
 namespace Phlex\Core\ExceptionRenderer;
 
+use Composer\Autoload\ClassLoader;
 use Phlex\Core\Exception;
 use Phlex\Core\TraitUtil;
+use Phlex\Core\TranslatableTrait;
+use Phlex\Core\Translator\ITranslatorAdapter;
+use Phlex\Core\Translator\Translator;
 
+/**
+ * @phpstan-consistent-constructor
+ */
 abstract class RendererAbstract
 {
-    /** @var \Throwable|Exception */
-    public $exception;
+    use TranslatableTrait;
 
-    /** @var \Throwable|Exception|null */
-    public $parent_exception;
+    public \Throwable $exception;
 
-    /** @var string */
-    public $output = '';
+    public ?\Throwable $parentException;
 
-    public $adapter;
+    public string $output = '';
 
-    public function __construct(\Throwable $exception, $adapter = null, \Throwable $parent_exception = null)
+    public ?ITranslatorAdapter $adapter;
+
+    public function __construct(\Throwable $exception, ?ITranslatorAdapter $adapter = null, ?\Throwable $parentException = null)
     {
-        $this->adapter = $adapter;
         $this->exception = $exception;
-        $this->parent_exception = $parent_exception;
+        $this->parentException = $parentException;
+        $this->adapter = $adapter;
     }
 
     abstract protected function processHeader(): void;
@@ -48,6 +54,7 @@ abstract class RendererAbstract
         $this->processPreviousException();
     }
 
+    #[\Override]
     public function __toString(): string
     {
         try {
@@ -55,31 +62,38 @@ abstract class RendererAbstract
 
             return $this->output;
         } catch (\Throwable $e) {
-            // fallback if Exception occur in renderer
-            return '!! PHLEX CORE ERROR - EXCEPTION RENDER FAILED: '
+            // fallback if Exception occurred during rendering
+            return '!! ATK4 CORE ERROR - EXCEPTION RENDER FAILED: '
                 . get_class($this->exception)
                 . ($this->exception->getCode() !== 0 ? '(' . $this->exception->getCode() . ')' : '')
                 . ': ' . $this->exception->getMessage() . ' !!';
         }
     }
 
-    protected function replaceTokens(array $tokens, string $text): string
+    /**
+     * @param array<string, string> $tokens
+     */
+    protected function replaceTokens(string $text, array $tokens): string
     {
         return str_replace(array_keys($tokens), array_values($tokens), $text);
     }
 
-    protected function parseStackTraceCall(array $call): array
+    /**
+     * @param array<string, mixed> $frame
+     *
+     * @return array<string, mixed>
+     */
+    protected function parseStackTraceFrame(array $frame): array
     {
         $parsed = [
-            'line' => (string) ($call['line'] ?? ''),
-            'file' => (string) ($call['file'] ?? ''),
-            'class' => $call['class'] ?? null,
-            'object' => $call['object'] ?? null,
-            'function' => $call['function'] ?? null,
-            'args' => $call['args'] ?? [],
+            'line' => (string) ($frame['line'] ?? ''),
+            'file' => (string) ($frame['file'] ?? ''),
+            'class' => $frame['class'] ?? null,
+            'object' => $frame['object'] ?? null,
+            'function' => $frame['function'] ?? null,
+            'args' => $frame['args'] ?? [],
+            'class_formatted' => null,
             'object_formatted' => null,
-            'file_formatted' => null,
-            'line_formatted' => null,
         ];
 
         try {
@@ -88,32 +102,36 @@ abstract class RendererAbstract
             $parsed['file_rel'] = $parsed['file'];
         }
 
+        if ($parsed['class'] !== null) {
+            $parsed['class_formatted'] = str_replace("\0", ' ', $this->tryRelativizePathsInString($parsed['class']));
+        }
+
         if ($parsed['object'] !== null) {
-            $objProps = get_object_vars($parsed['object']);
             $parsed['object_formatted'] = TraitUtil::hasTrackableTrait($parsed['object'])
-                ? $objProps['elementName']
-                : get_class($parsed['object']);
+                ? get_object_vars($parsed['object'])['name'] ?? ($parsed['object']->elementId ?? '')
+                : str_replace("\0", ' ', $this->tryRelativizePathsInString(get_class($parsed['object'])));
         }
 
         return $parsed;
     }
 
-    public static function toSafeString($val, $allowNl = false, int $maxDepth = 2): string
+    /**
+     * @param mixed $val
+     */
+    public static function toSafeString($val, bool $allowNl = false, int $maxDepth = 2): string
     {
-        if ($val instanceof \Closure) {
-            return 'closure';
-        } elseif (is_object($val)) {
-            $objProps = get_object_vars($val);
-
-            return get_class($val) . (TraitUtil::hasTrackableTrait($val) ? ' (' . $objProps['elementName'] . ')' : '');
-        } elseif (is_resource($val)) {
-            return 'resource';
+        if (is_object($val)) {
+            return get_class($val) . (TraitUtil::hasTrackableTrait($val)
+                ? ' (' . (get_object_vars($val)['name'] ?? ($val->elementId ?? '')) . ')'
+                : '');
+        } elseif (str_replace(' (closed)', '', gettype($val)) === 'resource') {
+            return get_debug_type($val);
         } elseif (is_scalar($val) || $val === null) {
-            $out = json_encode($val, \JSON_PRESERVE_ZERO_FRACTION | \JSON_UNESCAPED_UNICODE);
-            $out = preg_replace('~\\\\"~', '"', preg_replace('~^"|"$~s', '\'', $out)); // use single quotes
-            $out = preg_replace('~\\\\([\\\\/])~s', '$1', $out); // unescape slashes
+            $out = json_encode($val, \JSON_UNESCAPED_SLASHES | \JSON_PRESERVE_ZERO_FRACTION | \JSON_UNESCAPED_UNICODE | \JSON_THROW_ON_ERROR);
+            $out = preg_replace('~\\\"~', '"', preg_replace('~^"|"$~s', '\'', $out)); // use single quotes
+            $out = preg_replace('~\\\{2}~s', '$1', $out); // unescape backslashes
             if ($allowNl) {
-                $out = preg_replace('~(\\\\r)?\\\\n|\\\\r~s', "\n", $out); // unescape new lines
+                $out = preg_replace('~(\\\r)?\\\n|\\\r~s', "\n", $out); // unescape new lines
             }
 
             return $out;
@@ -124,15 +142,15 @@ abstract class RendererAbstract
         }
 
         $out = '[';
-        $supressKeys = array_keys($val) === range(0, count($val) - 1);
+        $suppressKeys = array_is_list($val);
         foreach ($val as $k => $v) {
             $kSafe = static::toSafeString($k);
             $vSafe = static::toSafeString($v, $allowNl, $maxDepth - 1);
 
             if ($allowNl) {
-                $out .= "\n" . '  ' . ($supressKeys ? '' : $kSafe . ': ') . preg_replace('~(?<=\n)~', '    ', $vSafe);
+                $out .= "\n" . '  ' . ($suppressKeys ? '' : $kSafe . ': ') . preg_replace('~(?<=\n)~', '    ', $vSafe);
             } else {
-                $out .= ($supressKeys ? '' : $kSafe . ': ') . $vSafe;
+                $out .= ($suppressKeys ? '' : $kSafe . ': ') . $vSafe;
             }
 
             if ($k !== array_key_last($val)) {
@@ -155,7 +173,7 @@ abstract class RendererAbstract
     {
         $msg = $this->exception->getMessage();
         $msg = $this->tryRelativizePathsInString($msg);
-//         $msg = $this->_($msg);
+        $msg = $this->_($msg);
 
         return $msg;
     }
@@ -163,32 +181,33 @@ abstract class RendererAbstract
     /**
      * Returns stack trace and reindex it from the first call. If shortening is allowed,
      * shorten the stack trace if it starts with the parent one.
+     *
+     * @return array<int|'self', array<string, mixed>>
      */
     protected function getStackTrace(bool $shorten): array
     {
-        $custTraceFunc = function (\Throwable $ex) {
-            $trace = $ex instanceof Exception
-                ? $ex->getMyTrace()
-                : $ex->getTrace();
+        $custTraceFx = static function (\Throwable $ex) {
+            $trace = $ex->getTrace();
 
             return count($trace) > 0 ? array_combine(range(count($trace) - 1, 0, -1), $trace) : [];
         };
 
-        $trace = $custTraceFunc($this->exception);
-        $parent_trace = $shorten && $this->parent_exception !== null ? $custTraceFunc($this->parent_exception) : [];
+        $trace = $custTraceFx($this->exception);
+        $parentTrace = $shorten && $this->parentException !== null ? $custTraceFx($this->parentException) : [];
 
-        $both_atk = $this->exception instanceof Exception && $this->parent_exception instanceof Exception;
-        $c = min(count($trace), count($parent_trace));
+        $bothPhlex = $this->exception instanceof Exception && $this->parentException instanceof Exception;
+        $c = min(count($trace), count($parentTrace));
         for ($i = 0; $i < $c; ++$i) {
-            $cv = $this->parseStackTraceCall($trace[$i]);
-            $pv = $this->parseStackTraceCall($parent_trace[$i]);
+            $cv = $this->parseStackTraceFrame($trace[$i]);
+            $pv = $this->parseStackTraceFrame($parentTrace[$i]);
 
             if ($cv['line'] === $pv['line']
-                    && $cv['file'] === $pv['file']
-                    && $cv['class'] === $pv['class']
-                    && (!$both_atk || $cv['object'] === $pv['object'])
-                    && $cv['function'] === $pv['function']
-                    && (!$both_atk || $cv['args'] === $pv['args'])) {
+                && $cv['file'] === $pv['file']
+                && $cv['class'] === $pv['class']
+                && (!$bothPhlex || $cv['object'] === $pv['object'])
+                && $cv['function'] === $pv['function']
+                && (!$bothPhlex || $cv['args'] === $pv['args'])
+            ) {
                 unset($trace[$i]);
             } else {
                 break;
@@ -196,26 +215,29 @@ abstract class RendererAbstract
         }
 
         // display location as another stack trace call
-        return [
-            'self' => [
-                'line' => $this->exception->getLine(),
-                'file' => $this->exception->getFile(),
-            ],
-        ] + $trace;
+        $trace = ['self' => [
+            'line' => $this->exception->getLine(),
+            'file' => $this->exception->getFile(),
+        ]] + $trace;
+
+        return $trace;
     }
 
-//     public function _($message, array $parameters = [], string $domain = null, string $locale = null): string
-//     {
-//         return $this->adapter
-//             ? $this->adapter->_($message, $parameters, $domain, $locale)
-//             : Translator::instance()->_($message, $parameters, $domain, $locale);
-//     }
+    /**
+     * @param array<string, mixed> $parameters
+     */
+    public function _(string $message, array $parameters = [], ?string $domain = null, ?string $locale = null): string
+    {
+        return $this->adapter
+            ? $this->adapter->_($message, $parameters, $domain, $locale)
+            : Translator::instance()->_($message, $parameters, $domain, $locale);
+    }
 
     protected function getVendorDirectory(): string
     {
-        $loaderFile = realpath((new \ReflectionClass(\Composer\Autoload\ClassLoader::class))->getFileName());
+        $loaderFile = realpath((new \ReflectionClass(ClassLoader::class))->getFileName());
         $coreDir = realpath(dirname(__DIR__, 2) . '/');
-        if (strpos($loaderFile, $coreDir . \DIRECTORY_SEPARATOR) === 0) { // this repo is main project
+        if (str_starts_with($loaderFile, $coreDir . \DIRECTORY_SEPARATOR)) { // this repo is main project
             return realpath(dirname($loaderFile, 2) . '/');
         }
 
@@ -224,14 +246,15 @@ abstract class RendererAbstract
 
     protected function makeRelativePath(string $path): string
     {
-        if ($path === '' || ($pathReal = realpath($path)) === false) {
+        $pathReal = $path === '' ? false : realpath($path);
+        if ($pathReal === false) {
             throw new Exception('Path not found');
         }
 
         $filePathArr = explode(\DIRECTORY_SEPARATOR, ltrim($pathReal, '/\\'));
         $vendorRootArr = explode(\DIRECTORY_SEPARATOR, ltrim($this->getVendorDirectory(), '/\\'));
         if ($filePathArr[0] !== $vendorRootArr[0]) {
-            return $filePathArr;
+            return implode('/', $filePathArr);
         }
 
         array_pop($vendorRootArr); // assume parent directory as project directory
@@ -245,10 +268,10 @@ abstract class RendererAbstract
 
     protected function tryRelativizePathsInString(string $str): string
     {
-        $str = preg_replace_callback('~(?<!\w)(?:[/\\\\]|[a-z]:)\w?+[^:"\',;]*?\.php(?!\w)~i', function ($matches) {
+        $str = preg_replace_callback('~(?<!\w)(?:[/\\\]|[a-z]:)\w?+[^:"\',;]*?\.php(?!\w)~i', function ($matches) {
             try {
                 return $this->makeRelativePath($matches[0]);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 return $matches[0];
             }
         }, $str);

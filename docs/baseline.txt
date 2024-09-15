@@ -1,0 +1,2 @@
+exception.md: [phpdomain] Target Phlex\Ui\App::catchExceptions not found
+exception.md: [phpdomain] Target Phlex\Ui\App::caughtException not found

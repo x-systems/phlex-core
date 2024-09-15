@@ -4,59 +4,60 @@ declare(strict_types=1);
 
 namespace Phlex\Core\Tests;
 
-use Phlex\Core;
-use Phlex\Core\TraitUtil;
+use Phlex\Core\AppScopeTrait;
+use Phlex\Core\ContainerTrait;
+use Phlex\Core\Exception;
+use Phlex\Core\InitializerTrait;
+use Phlex\Core\InjectableTrait;
+use Phlex\Core\NameTrait;
+use Phlex\Core\Phpunit\TestCase;
+use Phlex\Core\TrackableTrait;
 
-/**
- * @coversDefaultClass \Phlex\Core\ContainerTrait
- */
-class ContainerTraitTest extends \Phlex\Core\PHPUnit\TestCase
+class ContainerTraitTest extends TestCase
 {
-    /**
-     * Test constructor.
-     */
-    public function testBasic()
+    public function testBasic(): void
     {
         $m = new ContainerMock();
-        $this->assertTrue(TraitUtil::hasContainerTrait($m));
 
         // add to return object
-        $tr = $m->add($tr2 = new \StdClass());
-        $this->assertSame($tr, $tr2);
+        $tr2 = new \stdClass();
+        $tr = $m->add($tr2);
+        self::assertSame($tr, $tr2);
 
         // trackable object can be referenced by name
-        $m->add($tr3 = new TrackableMock(), 'foo');
+        $tr3 = new TrackableMock();
+        $m->add($tr3, 'foo');
         $tr = $m->getElement('foo');
-        $this->assertSame($tr, $tr3);
+        self::assertSame($tr, $tr3);
     }
 
-    public function testUniqueNames()
+    public function testUniqueNames(): void
     {
         $m = new ContainerMock();
 
-        // two anonymous children should get unique names asigned.
+        // two anonymous children should get unique names assigned.
         $m->add(new TrackableMock());
         $anon = $m->add(new TrackableMock());
         $m->add(new TrackableMock(), 'foo bar');
         $m->add(new TrackableMock(), '123');
         $m->add(new TrackableMock(), 'false');
 
-        $this->assertTrue($m->hasElement('foo bar'));
-        $this->assertTrue($m->hasElement('123'));
-        $this->assertTrue($m->hasElement('false'));
-        $this->assertSame(5, $m->getElementCount());
+        self::assertTrue($m->hasElement('foo bar'));
+        self::assertTrue($m->hasElement('123'));
+        self::assertTrue($m->hasElement('false'));
+        self::assertSame(5, $m->getElementCount());
 
         $m->getElement('foo bar')->destroy();
-        $this->assertSame(4, $m->getElementCount());
+        self::assertSame(4, $m->getElementCount());
         $anon->destroy();
-        $this->assertSame(3, $m->getElementCount());
+        self::assertSame(3, $m->getElementCount());
     }
 
-    public function testLongNames()
+    public function testLongNames(): void
     {
         $app = new ContainerAppMock();
         $app->setApp($app);
-        $app->max_name_length = 30;
+        $app->maxNameLength = 40;
         $m = $app->add(new ContainerAppMock(), 'quick-brown-fox');
         $m = $m->add(new ContainerAppMock(), 'jumps-over-a-lazy-dog');
         $m = $m->add(new ContainerAppMock(), 'then-they-go-out-for-a-pint');
@@ -65,173 +66,281 @@ class ContainerTraitTest extends \Phlex\Core\PHPUnit\TestCase
         $x = $m->add(new ContainerAppMock(), 'a');
         $x = $m->add(new ContainerAppMock(), 'mint');
 
-        $this->assertSame(
+        self::assertSame(
             '_quick-brown-fox_jumps-over-a-lazy-dog_then-they-go-out-for-a-pint_eat-a-stake',
             $m->unshortenName($this)
         );
 
-        $this->assertLessThan(5, count($app->unique_hashes));
-        $this->assertGreaterThan(2, count($app->unique_hashes));
+        self::assertLessThan(5, count($app->uniqueNameHashes));
+        self::assertGreaterThan(2, count($app->uniqueNameHashes));
 
         $m->removeElement($x);
 
-        $this->assertSame(2, $m->getElementCount());
-        $m->add(new \StdClass());
+        self::assertSame(2, $m->getElementCount());
+        $m->add(new \stdClass());
 
-        $this->assertSame(2, $m->getElementCount());
+        self::assertSame(2, $m->getElementCount());
     }
 
-    public function testLongNames2()
+    public function testLongNames2(): void
     {
         $app = new ContainerAppMock();
         $app->setApp($app);
-        $app->max_name_length = 30;
+        $app->maxNameLength = 40;
         $app->elementName = 'my-app-name-is-pretty-long';
 
-        $max_len = 0;
-        $min_len_v = '';
-        $min_len = 99;
-        $max_len_v = '';
+        $minLength = 9999;
+        $minLengthValue = '';
+        $maxLength = 0;
+        $maxLengthValue = '';
 
         for ($x = 1; $x < 100; ++$x) {
             $sh = str_repeat('x', $x);
             $m = $app->add(new ContainerAppMock(), $sh);
-            if (strlen($m->elementName) > $max_len) {
-                $max_len = strlen($m->elementName);
-                $max_len_v = $m->elementName;
+            if (strlen($m->elementName) > $maxLength) {
+                $maxLength = strlen($m->elementName);
+                $maxLengthValue = $m->elementName;
             }
-            if (strlen($m->elementName) < $min_len) {
-                $min_len = strlen($m->elementName);
-                $min_len_v = $m->elementName;
+            if (strlen($m->elementName) < $minLength) {
+                $minLength = strlen($m->elementName);
+                $minLengthValue = $m->elementName;
             }
         }
 
         // hash is 10 and we want 5 chars minimum for the right side e.g. XYXYXYXY__abcde
-        $this->assertGreaterThanOrEqual(15, $min_len);
+        self::assertGreaterThanOrEqual(15, $minLength);
         // hash is 10 and we want 5 chars minimum for the right side e.g. XYXYXYXY__abcde
-        $this->assertLessThanOrEqual($app->max_name_length, $max_len);
+        self::assertLessThanOrEqual($app->maxNameLength, $maxLength);
     }
 
-    public function testFactoryMock()
+    public function testPreservePresetNames(): void
+    {
+        $app = new ContainerAppMock();
+        $app->setApp($app);
+        $app->elementName = 'r';
+        $app->maxNameLength = 40;
+
+        $createTrackableMockFx = function (string $name, bool $isLongName = false) {
+            return new class($name, $isLongName) extends TrackableMock {
+                use NameTrait;
+
+                public function __construct(string $name, bool $isLongName)
+                {
+                    if ($isLongName) {
+                        $this->elementName = $name;
+                    } else {
+                        $this->elementId = $name;
+                    }
+                }
+            };
+        };
+
+        self::assertSame('r_foo', $app->add($createTrackableMockFx('foo'))->elementName);
+        self::assertSame('r_bar', $app->add($createTrackableMockFx('bar'))->elementName);
+        self::assertSame(40, strlen($app->add($createTrackableMockFx(str_repeat('x', 100)))->elementName));
+        self::assertSame(40, strlen($app->add($createTrackableMockFx(str_repeat('x', 100)))->elementName));
+
+        self::assertSame('foo', $app->add($createTrackableMockFx('foo', true))->elementName);
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Element has too long desired name');
+        self::assertSame(40, strlen($app->add($createTrackableMockFx(str_repeat('x', 100), true))->elementName));
+    }
+
+    public function testOwnerNotSetException(): void
+    {
+        $m = new TrackableMock();
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Owner is not set');
+        $m->getOwner();
+    }
+
+    public function testOwnerSetTwiceException(): void
+    {
+        $m = new TrackableMock();
+        $owner = new \stdClass();
+        $m->setOwner($owner);
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Owner is already set');
+        $m->setOwner($owner);
+    }
+
+    public function testOwnerUnset(): void
+    {
+        $m = new TrackableMock();
+        $owner = new \stdClass();
+        $m->setOwner($owner);
+        self::assertSame($owner, $m->getOwner());
+        $m->unsetOwner();
+
+        $owner = new \stdClass();
+        $m->setOwner($owner);
+        self::assertSame($owner, $m->getOwner());
+        $m->unsetOwner();
+    }
+
+    public function testFactoryMock(): void
     {
         $m = new ContainerFactoryMock();
         $m2 = $m->add([ContainerMock::class]);
-        $this->assertSame(ContainerMock::class, get_class($m2));
+        self::assertSame(ContainerMock::class, get_class($m2));
 
         $m3 = $m->add([TrackableContainerMock::class], 'name');
-        $this->assertSame(TrackableContainerMock::class, get_class($m3));
-        $this->assertSame('name', $m3->elementId);
+        self::assertSame(TrackableContainerMock::class, get_class($m3));
+        self::assertSame('name', $m3->elementId);
     }
 
-    public function testArgs()
+    public function testArgs(): void
     {
         // passing name with array key 'name'
         $m = new ContainerMock();
         $m2 = $m->add(new class() extends TrackableMock {
-            use Core\InjectableTrait;
+            use InjectableTrait;
+            use NameTrait;
         }, ['elementName' => 'foo']);
-        $this->assertTrue($m->hasElement('foo'));
-        $this->assertSame('foo', $m2->elementId);
+        self::assertTrue($m->hasElement('foo'));
+        self::assertSame('foo', $m2->elementId);
     }
 
-    public function testExceptionExists()
+    public function testExceptionExists(): void
     {
-        $this->expectException(core\Exception::class);
         $m = new ContainerMock();
         $m->add(new TrackableMock(), 'foo');
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Element with requested name already exists');
         $m->add(new TrackableMock(), 'foo');
     }
 
-    public function testDesiredName()
+    public function testDesiredName(): void
     {
         $m = new ContainerMock();
         $m->add(new TrackableMock(), ['desiredName' => 'foo']);
         $m->add(new TrackableMock(), ['desiredName' => 'foo']);
 
-        $this->assertTrue($m->hasElement('foo'));
+        self::assertTrue($m->hasElement('foo'));
     }
 
-    public function testExceptionShortName()
+    public function testExceptionShortName(): void
     {
-        $this->expectException(core\Exception::class);
         $m1 = new ContainerMock();
         $m2 = new ContainerMock();
         $m1foo = $m1->add(new TrackableMock(), 'foo');
         $m2foo = $m2->add(new TrackableMock(), 'foo');
 
-        // will carry on short name and run into collision.
-        $m2->add($m1foo);
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Element with requested name already exists');
+        $m2->add($m1foo); // will carry on short name and run into collision
     }
 
-    public function testExceptionArg2()
+    public function testExceptionArg2(): void
     {
-        $this->expectException(core\Exception::class);
         $m = new ContainerMock();
-        $m->add(new TrackableMock(), 123);
+
+        if (\PHP_MAJOR_VERSION === 7) {
+            self::assertNotNull('Expecting E_WARNING is deprecated in PHPUnit 9'); // @phpstan-ignore staticMethod.alreadyNarrowedType
+
+            return;
+        }
+
+        $this->expectException(\TypeError::class);
+        $this->expectExceptionMessage('array_diff_key(): Argument #1 ($array) must be of type array, int given');
+        $m->add(new TrackableMock(), 123); // @phpstan-ignore argument.type
     }
 
-    public function testException3()
+    public function testException3(): void
     {
+        $m = new ContainerMock();
+
         $this->expectException(\Error::class);
-        $this->expectExceptionMessage(\PHP_MAJOR_VERSION < 8 ? 'Class \'hello\' not found' : 'Class "hello" not found');
-        $m = new ContainerMock();
-        $m->add(['hello'], 123);
+        $this->expectExceptionMessage(\PHP_MAJOR_VERSION === 7 ? 'Class \'hello\' not found' : 'Class "hello" not found');
+        $m->add(['hello']);
     }
 
-    public function testException4()
+    public function testException4(): void
     {
-        $this->expectException(core\Exception::class);
         $m = new ContainerMock();
-        $el = $m->getElement('dont_exist');
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Child element not found');
+        $m->getElement('dont_exist');
     }
 
-    public function testException5()
+    public function testException5(): void
     {
-        $this->expectException(core\Exception::class);
         $m = new ContainerMock();
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Child element not found');
         $m->removeElement('dont_exist');
+    }
+
+    public function testExceptionInInitMustNotAdd(): void
+    {
+        $m = new ContainerMock();
+
+        $e = null;
+        try {
+            $m->add(new class() extends TrackableMock {
+                use InitializerTrait;
+
+                protected function doInitialize(): void
+                {
+                    throw new Exception('from init');
+                }
+            }, 'foo');
+        } catch (Exception $e) {
+        }
+        self::assertSame('from init', $e->getMessage());
+
+        self::assertFalse($m->hasElement('foo'));
+        $m->add(new TrackableMock(), 'foo');
+        self::assertTrue($m->hasElement('foo'));
     }
 }
 
-// @codingStandardsIgnoreStart
 class TrackableMock
 {
-    use Core\InjectableTrait;
-    use Core\TrackableTrait;
+    use TrackableTrait;
 }
 class ContainerFactoryMock
 {
-    use Core\ContainerTrait;
-    use Core\NameTrait;
+    use ContainerTrait;
+    use NameTrait;
+}
+
+class TrackableContainerMock
+{
+    use ContainerTrait;
+    use TrackableTrait;
 }
 
 class ContainerAppMock
 {
-    use Core\AppScopeTrait;
-    use Core\ContainerTrait;
-    use Core\TrackableTrait;
+    use AppScopeTrait;
+    use ContainerTrait;
+    use NameTrait;
+    use TrackableTrait;
 
-    public function getElementCount()
+    public function getElementCount(): int
     {
         return count($this->elements);
     }
 
-    public function unshortenName()
+    public function unshortenName(): string
     {
         $n = $this->elementName;
 
-        $d = array_flip($this->getApp()->unique_hashes);
+        $d = array_flip($this->getApp()->uniqueNameHashes);
 
-        for ($x = 1; $x < 100; ++$x) {
-            @[$l, $r] = explode('__', $n);
-
-            if (!$r) {
-                return $l;
-            }
-
+        for ($x = 0; str_contains($n, '__') && $x < 100; ++$x) {
+            [$l, $r] = explode('__', $n);
             $l = $d[$l];
             $n = $l . $r;
         }
+
+        return $n;
     }
 }
-// @codingStandardsIgnoreEnd

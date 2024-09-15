@@ -8,6 +8,7 @@ use Phlex\Core\Exception;
 
 class Html extends RendererAbstract
 {
+    #[\Override]
     protected function processHeader(): void
     {
         $title = $this->getExceptionTitle();
@@ -20,7 +21,7 @@ class Html extends RendererAbstract
             '{CODE}' => $this->exception->getCode() ? ' [code: ' . $this->exception->getCode() . ']' : '',
         ];
 
-        $this->output .= $this->replaceTokens($tokens, '
+        $this->output .= $this->replaceTokens('
             <div class="ui negative icon message">
                 <i class="warning sign icon"></i>
                 <div class="content">
@@ -29,9 +30,15 @@ class Html extends RendererAbstract
                     {MESSAGE}
                 </div>
             </div>
-        ');
+        ', $tokens);
     }
 
+    protected function encodeHtml(string $value): string
+    {
+        return htmlspecialchars($value, \ENT_HTML5 | \ENT_QUOTES | \ENT_SUBSTITUTE, 'UTF-8');
+    }
+
+    #[\Override]
     protected function processParams(): void
     {
         if (!$this->exception instanceof Exception) {
@@ -53,24 +60,22 @@ class Html extends RendererAbstract
         $tokens = [
             '{PARAMS}' => '',
         ];
-        $text_inner = '
+        $textInner = '
                     <tr><td><b>{KEY}</b></td><td style="width: 100%;">{VAL}</td></tr>';
         foreach ($this->exception->getParams() as $key => $val) {
-            $key = htmlentities($key);
-            $val = '<span style="white-space: pre-wrap;">' . preg_replace('~(?<=\n)( +)~', '$1$1', htmlentities(static::toSafeString($val, true))) . '</span>';
+            $key = $this->encodeHtml($key);
+            $val = '<span style="white-space: pre-wrap;">' . preg_replace('~(?<=\n)( +)~', '$1$1', $this->encodeHtml(static::toSafeString($val, true))) . '</span>';
 
-            $tokens['{PARAMS}'] .= $this->replaceTokens(
-                [
-                    '{KEY}' => $key,
-                    '{VAL}' => $val,
-                ],
-                $text_inner
-            );
+            $tokens['{PARAMS}'] .= $this->replaceTokens($textInner, [
+                '{KEY}' => $key,
+                '{VAL}' => $val,
+            ]);
         }
 
-        $this->output .= $this->replaceTokens($tokens, $text);
+        $this->output .= $this->replaceTokens($text, $tokens);
     }
 
+    #[\Override]
     protected function processSolutions(): void
     {
         if (!$this->exception instanceof Exception) {
@@ -95,15 +100,16 @@ class Html extends RendererAbstract
         $tokens = [
             '{SOLUTIONS}' => '',
         ];
-        $text_inner = '
+        $textInner = '
                     <tr><td>{VAL}</td></tr>';
         foreach ($exception->getSolutions() as $key => $val) {
-            $tokens['{SOLUTIONS}'] .= $this->replaceTokens(['{VAL}' => htmlentities($val)], $text_inner);
+            $tokens['{SOLUTIONS}'] .= $this->replaceTokens($textInner, ['{VAL}' => $this->encodeHtml($val)]);
         }
 
-        $this->output .= $this->replaceTokens($tokens, $text);
+        $this->output .= $this->replaceTokens($text, $tokens);
     }
 
+    #[\Override]
     protected function processStackTrace(): void
     {
         $this->output .= '
@@ -121,6 +127,7 @@ class Html extends RendererAbstract
         ';
     }
 
+    #[\Override]
     protected function processStackTraceInternal(): void
     {
         $text = '
@@ -132,24 +139,24 @@ class Html extends RendererAbstract
             </tr>
         ';
 
-        $in_atk = true;
-        $short_trace = $this->getStackTrace(true);
-        $is_shortened = end($short_trace) && key($short_trace) !== 0 && key($short_trace) !== 'self';
-        foreach ($short_trace as $index => $call) {
-            $call = $this->parseStackTraceCall($call);
+        $inPhlex = true;
+        $shortTrace = $this->getStackTrace(true);
+        $isShortened = end($shortTrace) && key($shortTrace) !== 0 && key($shortTrace) !== 'self';
+        foreach ($shortTrace as $index => $call) {
+            $call = $this->parseStackTraceFrame($call);
 
-            $escape_frame = false;
-            if ($in_atk && !preg_match('~atk4[/\\\\][^/\\\\]+[/\\\\]src[/\\\\]~', $call['file'])) {
-                $escape_frame = true;
-                $in_atk = false;
+            $escapeFrame = false;
+            if ($inPhlex && $call['file'] !== '' && !preg_match('~phlex[/\\\][^/\\\]+[/\\\]src[/\\\]~', $call['file'])) {
+                $escapeFrame = true;
+                $inPhlex = false;
             }
 
             $tokens = [];
             $tokens['{INDEX}'] = $index === 'self' ? '' : $index + 1;
             $tokens['{FILE_LINE}'] = $call['file_rel'] !== '' ? $call['file_rel'] . ':' . $call['line'] : '';
             $tokens['{OBJECT}'] = $call['object'] !== false ? $call['object_formatted'] : '-';
-            $tokens['{CLASS}'] = $call['class'] !== false ? $call['class'] . '::' : '';
-            $tokens['{CSS_CLASS}'] = $escape_frame ? 'negative' : '';
+            $tokens['{CLASS}'] = $call['class'] !== false ? $call['class_formatted'] . '::' : '';
+            $tokens['{CSS_CLASS}'] = $escapeFrame ? 'negative' : '';
 
             $tokens['{FUNCTION}'] = $call['function'];
 
@@ -158,17 +165,19 @@ class Html extends RendererAbstract
             } elseif (count($call['args']) === 0) {
                 $tokens['{FUNCTION_ARGS}'] = '()';
             } else {
-                if ($escape_frame) {
-                    $tokens['{FUNCTION_ARGS}'] = '(<br />' . implode(',' . '<br />', array_map(fn ($arg) => htmlentities(static::toSafeString($arg, false, 1)), $call['args'])) . ')';
+                if ($escapeFrame) {
+                    $tokens['{FUNCTION_ARGS}'] = '(<br>' . implode(',<br>', array_map(function ($arg) {
+                        return $this->encodeHtml(static::toSafeString($arg, false, 1));
+                    }, $call['args'])) . ')';
                 } else {
                     $tokens['{FUNCTION_ARGS}'] = '(...)';
                 }
             }
 
-            $this->output .= $this->replaceTokens($tokens, $text);
+            $this->output .= $this->replaceTokens($text, $tokens);
         }
 
-        if ($is_shortened) {
+        if ($isShortened) {
             $this->output .= '
                 <tr>
                     <td style="text-align: right">...</td>
@@ -180,6 +189,7 @@ class Html extends RendererAbstract
         }
     }
 
+    #[\Override]
     protected function processPreviousException(): void
     {
         if (!$this->exception->getPrevious()) {

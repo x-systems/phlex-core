@@ -14,7 +14,7 @@ trait SeedRegistryTrait
      *
      * @var array
      */
-//     protected $seeds = [];
+    //     protected $seeds = [];
 
     /**
      * Retrieves an option from the array.

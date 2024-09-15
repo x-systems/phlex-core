@@ -6,40 +6,38 @@ namespace Phlex\Core\Tests\Hintable;
 
 use Phlex\Core\Exception;
 use Phlex\Core\Hintable\Method;
+use Phlex\Core\PHPUnit\TestCase;
 
-/**
- * @coversDefaultClass \Phlex\Hintable\MagicMethod
- */
-class MethodTest extends \Phlex\Core\PHPUnit\TestCase
+class MethodTest extends TestCase
 {
     public function testMethodName(): void
     {
         $mock = new MethodMock();
-        $this->assertSame('pub', $mock->methodName()->pub());
-        $this->assertSame('priv', $mock->methodName()->priv());
-        $this->assertSame('undeclared', $mock->methodName()->undeclared()); // @phpstan-ignore-line
+        self::assertSame('pub', $mock->methodName()->pub());
+        self::assertSame('priv', $mock->methodName()->priv());
+        self::assertSame('undeclared', $mock->methodName()->undeclared()); // @phpstan-ignore method.notFound
     }
 
     public function testMethodNameFull(): void
     {
         $mock = new MethodMock();
-        $this->assertSame(MethodMock::class . '::pub', $mock->methodNameFull()->pub());
-        $this->assertSame(MethodMock::class . '::priv', $mock->methodNameFull()->priv());
-        $this->assertSame(MethodMock::class . '::undeclared', $mock->methodNameFull()->undeclared()); // @phpstan-ignore-line
-        $this->assertSame(\stdClass::class . '::undeclared2', Method::methodNameFull(\stdClass::class)->undeclared2()); // @phpstan-ignore-line
+        self::assertSame(MethodMock::class . '::pub', $mock->methodNameFull()->pub());
+        self::assertSame(MethodMock::class . '::priv', $mock->methodNameFull()->priv());
+        self::assertSame(MethodMock::class . '::undeclared', $mock->methodNameFull()->undeclared()); // @phpstan-ignore method.notFound
+        self::assertSame(\stdClass::class . '::undeclared', Method::methodNameFull(\stdClass::class)->undeclared()); // @phpstan-ignore method.notFound
     }
 
     public function testPropertyAccessException(): void
     {
         $mock = new MethodMock();
         $this->expectException(Exception::class);
-        $mock->methodName()->unsupported; // @phpstan-ignore-line
+        $mock->methodName()->undeclared; // @phpstan-ignore property.notFound
     }
 
     public function testMethodClosure(): void
     {
         $mock = new MethodMock();
-        $this->assertSame(MethodMock::class . '::pub', $mock->methodClosure()->pub()());
+        self::assertSame(MethodMock::class . '::pub', $mock->methodClosure()->pub()());
     }
 
     public function testMethodClosureStatic(): void
@@ -48,35 +46,35 @@ class MethodTest extends \Phlex\Core\PHPUnit\TestCase
 
         // calling static method as instance method is valid in PHP
         // and also the only supported option by us
-        $this->assertSame(MethodMock::class . '::pubStat', $mock->methodClosure()->pubStat()());
+        self::assertSame(MethodMock::class . '::pubStat', $mock->methodClosure()->pubStat()());
 
         $this->expectException(Exception::class);
-        $this->assertSame(MethodMock::class . '::pubStat', $mock->methodClosure()::pubStat()()); // @phpstan-ignore-line
+        self::assertSame(MethodMock::class . '::pubStat', $mock->methodClosure()::pubStat()()); // @phpstan-ignore method.staticCall
     }
 
     public function testMethodClosureProtected(): void
     {
         $mock = new MethodMock();
-        $this->assertSame(MethodMock::class . '::priv', $mock->methodClosureProtected()->priv()());
-        $this->assertSame(MethodMock::class . '::privStat', $mock->methodClosureProtected()->privStat()());
+        self::assertSame(MethodMock::class . '::priv', $mock->methodClosureProtected()->priv()());
+        self::assertSame(MethodMock::class . '::privStat', $mock->methodClosureProtected()->privStat()());
     }
 
     public function testMethodClosureAnonymous(): void
     {
         $mock = new class() extends \stdClass {
-            private function privAnon(): string
+            private function privAnon(): string // @phpstan-ignore method.unused
             {
                 return __METHOD__;
             }
 
-            private static function privAnonStat(): string
+            private static function privAnonStat(): string // @phpstan-ignore method.unused
             {
                 return __METHOD__;
             }
         };
 
-        $this->assertSame(get_class($mock) . '::privAnon', Method::methodClosureProtected($mock)->privAnon()()); // @phpstan-ignore-line
-        $this->assertSame(get_class($mock) . '::privAnonStat', Method::methodClosureProtected($mock)->privAnonStat()()); // @phpstan-ignore-line
-        $this->assertSame(get_class($mock) . '::privAnonStat', Method::methodClosureProtected(get_class($mock))->privAnonStat()()); // @phpstan-ignore-line
+        self::assertSame(get_class($mock) . '::privAnon', Method::methodClosureProtected($mock)->privAnon()());
+        self::assertSame(get_class($mock) . '::privAnonStat', Method::methodClosureProtected($mock)->privAnonStat()());
+        self::assertSame(get_class($mock) . '::privAnonStat', Method::methodClosureProtected(get_class($mock))->privAnonStat()());
     }
 }

@@ -23,7 +23,7 @@ use Illuminate\Support\Str;
  * Several classes may opt to extend setDefaults, for example in Agile UI
  * setDefaults is extended to support classes and content:
  *
- * $segment->setDefaults(['Hello There', 'red', 'ui'=>'segment']);
+ * $segment->setDefaults(['Hello There', 'red', 'ui' => 'segment']);
  *
  * WARNING: Do not use this trait unless you have a lot of properties
  * to inject. Also follow the guidelines on
@@ -34,17 +34,24 @@ use Illuminate\Support\Str;
  */
 trait InjectableTrait
 {
+    use WarnDynamicPropertyTrait;
+
     /**
      * Call from __construct() to initialize the properties allowing
      * developer to pass Dependency Injector Container.
      *
-     * @param bool $passively If true, existing non-null values will be kept
+     * @param array<string, mixed> $properties
+     * @param bool                 $passively  If true, existing non-null values will be kept
      *
      * @return $this
      */
     public function setDefaults(array $properties, bool $passively = false)
     {
         foreach ($properties as $name => $value) {
+            if (is_int($name)) { // @phpstan-ignore function.impossibleType
+                $name = (string) $name; // @phpstan-ignore cast.useless
+            }
+
             $setterName = 'set' . Str::studly($name);
             $setterExists = method_exists($this, $setterName) && $setterName !== 'setDefaults';
 
@@ -73,11 +80,11 @@ trait InjectableTrait
     /**
      * @param mixed $value
      */
-    protected function setMissingProperty(string $name, $value): void
+    protected function setMissingProperty(string $propertyName, $value): void
     {
         throw (new Exception('Property for specified object is not defined'))
             ->addMoreInfo('object', $this)
-            ->addMoreInfo('property', $name)
+            ->addMoreInfo('property', $propertyName)
             ->addMoreInfo('value', $value);
     }
 
@@ -85,27 +92,30 @@ trait InjectableTrait
      * Return the argument and assert it is instance of current class.
      *
      * The best, typehinting-friendly, way to annotate object type if it not defined
-     * at method header or strong typing in method header can not be used.
+     * at method header or strong typing in method header cannot be used.
      *
      * @return static
      */
     public static function assertInstanceOf(object $object)// :static supported by PHP8+
     {
-        if (!($object instanceof static)) {
+        if (!$object instanceof static) {
             throw (new Exception('Object is not an instance of static class'))
-                ->addMoreInfo('static_class', static::class)
-                ->addMoreInfo('object_class', get_class($object));
+                ->addMoreInfo('staticClass', static::class)
+                ->addMoreInfo('objectClass', get_class($object));
         }
 
         return $object;
     }
 
-    private static function _fromSeedPrecheck($seed, bool $unsafe)// :self is too strict with unsafe behaviour
+    /**
+     * @param array<mixed>|object $seed
+     */
+    private static function _fromSeedPrecheck($seed, bool $unsafe): void
     {
         if (!is_object($seed)) {
-            if (!is_array($seed)) {
+            if (!is_array($seed)) { // @phpstan-ignore function.alreadyNarrowedType
                 throw (new Exception('Seed must be an array or an object'))
-                    ->addMoreInfo('seed_type', gettype($seed));
+                    ->addMoreInfo('seed', $seed);
             }
 
             if (!isset($seed[0])) {
@@ -116,12 +126,10 @@ trait InjectableTrait
             $cl = $seed[0];
             if (!$unsafe && !is_a($cl, static::class, true)) {
                 throw (new Exception('Seed class is not a subtype of static class'))
-                    ->addMoreInfo('static_class', static::class)
-                    ->addMoreInfo('seed_class', $cl);
+                    ->addMoreInfo('staticClass', static::class)
+                    ->addMoreInfo('seedClass', $cl);
             }
         }
-
-        return $seed;
     }
 
     /**
@@ -130,40 +138,32 @@ trait InjectableTrait
      * The best, typehinting-friendly, way to create an object if it should not be
      * immediately added to a parent (otherwise use addTo() method).
      *
-     * @param array|object $seed the first element specifies a class name, other elements are seed
+     * @param array<mixed>|object $seed     the first element specifies a class name, other elements are seed
+     * @param array<mixed>        $defaults
      *
      * @return static
      */
     public static function fromSeed($seed = [], $defaults = [])// :static supported by PHP8+
     {
-        if (func_num_args() > 2) { // prevent bad usage
-            throw new \Error('Too many method arguments');
-        }
-
-        $seed = self::_fromSeedPrecheck($seed, false);
+        self::_fromSeedPrecheck($seed, false);
         $object = Factory::factory($seed, $defaults);
 
-        static::assertInstanceOf($object);
-
-        return $object;
+        return static::assertInstanceOf($object);
     }
 
     /**
      * Same as fromSeed(), but the new object is not asserted to be an instance of this class.
      *
-     * @param array|object $seed the first element specifies a class name, other elements are seed
+     * @param array<mixed>|object $seed     the first element specifies a class name, other elements are seed
+     * @param array<mixed>        $defaults
      *
      * @return static
      */
-    public static function fromSeedUnsafe($seed = [], $defaults = [])// :self is too strict with unsafe behaviour
+    public static function fromSeedUnsafe($seed = [], $defaults = [])
     {
-        if (func_num_args() > 2) { // prevent bad usage
-            throw new \Error('Too many method arguments');
-        }
-
-        $seed = self::_fromSeedPrecheck($seed, true);
+        self::_fromSeedPrecheck($seed, true);
         $object = Factory::factory($seed, $defaults);
 
-        return $object;
+        return $object; // @phpstan-ignore return.type
     }
 }

@@ -38,7 +38,7 @@ trait OptionsTrait
      *
      * @param mixed $value
      */
-    public function setOption(string $key, $value = true) //:static
+    public function setOption(string $key, $value = true) // :static
     {
         $this->options[$key] = $value;
 
@@ -51,10 +51,8 @@ trait OptionsTrait
 
     /**
      * Unsets the option in the array.
-     *
-     * @param mixed $value
      */
-    public function unsetOption(string $key) //:static
+    public function unsetOption(string $key) // :static
     {
         unset($this->options[$key]);
 
@@ -65,7 +63,7 @@ trait OptionsTrait
         return $this;
     }
 
-    public function setOptions(array $options) //:static
+    public function setOptions(array $options) // :static
     {
         foreach ($options as $key => $value) {
             $this->setOption($key, $value);

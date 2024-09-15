@@ -9,10 +9,6 @@ namespace Phlex\Core;
  */
 trait NameTrait
 {
-    /**
-     * Unique object name.
-     *
-     * @var string|null
-     */
-    public $elementName;
+    /** @var non-falsy-string Unique object name. */
+    public string $elementName;
 }

@@ -10,5 +10,5 @@ class FieldMock
 {
     use InjectableTrait;
 
-    public $name;
+    public string $name;
 }

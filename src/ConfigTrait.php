@@ -4,35 +4,33 @@ declare(strict_types=1);
 
 namespace Phlex\Core;
 
+use Symfony\Component\Yaml\Yaml;
+
 /**
  * This trait makes it possible for you to read config files and various configurations
  * use:
  * 1. use Trait in your APP Class
  *    use \Phlex\Core\ConfigTrait;
  * 2. create config-default.php and/or config.php file and add config values like
- *    $config['key'] = 'value';
+ *    return ['key' => 'value'];
  * 3. call $this->readConfig();
  *    before using config.
  */
 trait ConfigTrait
 {
-    /**
-     * This property stores config values. Use getConfig() method to access its values.
-     *
-     * @var array
-     */
-    protected $config = [];
+    /** @var array<string, mixed> This property stores config values. Use getConfig() method to access its values. */
+    protected array $config = [];
 
     /**
      * Read config file or files and store it in $config property.
      *
      * Supported formats:
-     *  php         - PHP file with return ['foo'] = 'bar' structure
-     *  json        - JSON file with {'foo':'bar'} structure
+     *  php         - PHP file with return ['foo' => 'bar'] structure
+     *  json        - JSON file with { 'foo': 'bar' } structure
      *  yaml        - YAML file with yaml structure
      *
-     * @param string|array $files  One or more filenames
-     * @param string       $format Optional format for config files
+     * @param string|array<int, string> $files  One or more filenames
+     * @param string                    $format Optional format for config files
      *
      * @return $this
      */
@@ -45,7 +43,7 @@ trait ConfigTrait
         $configs = [];
         foreach ($files as $file) {
             if (!is_readable($file)) {
-                throw (new Exception('Can not read config file'))
+                throw (new Exception('Cannot read config file'))
                     ->addMoreInfo('file', $file)
                     ->addMoreInfo('format', $format);
             }
@@ -62,11 +60,11 @@ trait ConfigTrait
 
                     break;
                 case 'yaml':
-                    $tempConfig = \Symfony\Component\Yaml\Yaml::parseFile($file);
+                    $tempConfig = Yaml::parseFile($file);
 
                     break;
                 default:
-                    throw (new Exception('Unknown Format. Allowed formats: php, json, yml.'))
+                    throw (new Exception('Unknown Format. Allowed formats: php, json, yml'))
                         ->addMoreInfo('file', $file)
                         ->addMoreInfo('format', $format);
             }
@@ -88,8 +86,8 @@ trait ConfigTrait
     /**
      * Manually set configuration option.
      *
-     * @param string|array $paths Path to configuration element to set or array of [path=>value]
-     * @param mixed        $value Value to set
+     * @param string|array<string, mixed>       $paths Path to configuration element to set or array of [path => value]
+     * @param ($paths is array ? never : mixed) $value Value to set
      *
      * @return $this
      */
@@ -98,6 +96,7 @@ trait ConfigTrait
         if (!is_array($paths)) {
             $paths = [$paths => $value];
         }
+        unset($value);
 
         foreach ($paths as $path => $value) {
             $pos = &$this->_lookupConfigElement($path, true);
@@ -117,18 +116,18 @@ trait ConfigTrait
     /**
      * Get configuration element.
      *
-     * @param string $path          path to configuration element
-     * @param mixed  $default_value Default value returned if element don't exist
+     * @param string $path         path to configuration element
+     * @param mixed  $defaultValue Default value returned if element don't exist
      *
      * @return mixed
      */
-    public function getConfig(string $path, $default_value = null)
+    public function getConfig(string $path, $defaultValue = null)
     {
         $pos = &$this->_lookupConfigElement($path, false);
 
         // path element don't exist - return default value
         if ($pos === false) {
-            return $default_value;
+            return $defaultValue;
         }
 
         return $pos;
@@ -137,33 +136,24 @@ trait ConfigTrait
     /**
      * Internal method to lookup config element by given path.
      *
-     * @param string $path            Path to navigate to
-     * @param bool   $create_elements Should we create elements it they don't exist
+     * @param string $path           Path to navigate to
+     * @param bool   $createElements Should we create elements it they don't exist
      *
-     * @return array|false Pointer to element in $this->config or false is element don't exist and $create_elements===false
-     *                     Returns false if element don't exist and $create_elements===false
+     * @return mixed|false Pointer to element in $this->config or false is element don't exist and $createElements === false
      */
-    private function &_lookupConfigElement(string $path, bool $create_elements = false)
+    private function &_lookupConfigElement(string $path, bool $createElements = false)
     {
-        // trick to return false because we need reference here
-        $false = false;
-
         $path = explode('/', $path);
         $pos = &$this->config;
         foreach ($path as $el) {
-            // need to return if not is array
-            // before call array_key_exists and throw error
-            if (!is_array($pos)) {
-                return $false;
-            }
+            if (!is_array($pos) || !array_key_exists($el, $pos)) {
+                if (!is_array($pos) || !$createElements) {
+                    $res = false;
 
-            // create empty element if it doesn't exist
-            if (!array_key_exists($el, $pos) && $create_elements) {
+                    return $res;
+                }
+
                 $pos[$el] = [];
-            }
-            // if it still doesn't exist, then just return false (no error)
-            if (!array_key_exists($el, $pos) && !$create_elements) {
-                return $false;
             }
 
             $pos = &$pos[$el];

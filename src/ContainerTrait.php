@@ -11,57 +11,56 @@ namespace Phlex\Core;
 trait ContainerTrait
 {
     /**
-     * elementId => object hash of children objects. If the child is not
+     * Element shortName => object hash of children objects. If the child is not
      * trackable, then object will be set to "true" (to avoid extra reference).
      *
-     * @var array
+     * @var array<string, object>
      */
-    public $elements = [];
+    public array $elements = [];
 
-    /**
-     * @var int[]
-     */
-    private $elementNameCounts = [];
+    /** @var array<string, int> */
+    private array $_elementNameCounts = [];
 
     /**
      * Returns unique element name based on desired name.
      */
-    public function getUniqueElementName(string $desiredName): string
+    protected function _uniqueElementName(string $desired): string
     {
-        if (!isset($this->elementNameCounts[$desiredName])) {
-            $this->elementNameCounts[$desiredName] = 1;
+        if (!isset($this->_elementNameCounts[$desired])) {
+            $this->_elementNameCounts[$desired] = 1;
             $postfix = '';
         } else {
-            $postfix = '_' . (++$this->elementNameCounts[$desiredName]);
+            $postfix = '_' . (++$this->_elementNameCounts[$desired]);
         }
 
-        return $desiredName . $postfix;
+        return $desired . $postfix;
     }
 
     /**
      * If you are using ContainerTrait only, then you can safely
      * use this add() method. If you are also using factory, or
-     * initializer then redefine add() and call
-     * _add_Container, _add_Factory,.
+     * initializer then redefine add() and call _addContainer, _addFactory.
      *
-     * @param mixed        $obj
-     * @param array|string $args
+     * @param object|array<mixed, mixed> $obj
+     * @param array<mixed, mixed>|string $args
      */
     public function add($obj, $args = []): object
     {
-        if (is_array($args)) {
-            $args1 = $args;
-            unset($args1['desiredName']);
-            unset($args1[0]);
-            $obj = Factory::factory($obj, $args1);
-        } else {
-            $obj = Factory::factory($obj);
-        }
-        $obj = $this->_add_Container($obj, $args);
+        $obj = Factory::factory($obj, is_string($args) ? [] : array_diff_key($args, [true, 'desiredName' => true]));
+
+        $this->_addContainer($obj, is_string($args) ? ['elementName' => $args] : $args);
 
         if (TraitUtil::hasInitializerTrait($obj)) {
             if (!$obj->isInitialized()) {
-                $obj->initialize();
+                try {
+                    $obj->initialize();
+                } catch (\Throwable $e) {
+                    if (TraitUtil::hasTrackableTrait($obj)) {
+                        unset($this->elements[$obj->elementId]);
+                    }
+
+                    throw $e;
+                }
             }
         }
 
@@ -72,74 +71,65 @@ trait ContainerTrait
      * Extension to add() method which will perform linking of
      * the object with the current class.
      *
-     * @param array|string $args
+     * @param array{desiredName?: string, name?: string} $args
      */
-    protected function _add_Container(object $element, $args = []): object
+    protected function _addContainer(object $element, array $args): void
     {
-        // Carry on reference to application if we have appScopeTraits set
-        if (TraitUtil::hasAppScopeTrait($this) && TraitUtil::hasAppScopeTrait($element)) {
+        // carry on reference to application if we have appScopeTraits set
+        if (TraitUtil::hasAppScopeTrait($this) && TraitUtil::hasAppScopeTrait($element)
+            && (!$element->issetApp() || $element->getApp() !== $this->getApp())
+        ) {
             $element->setApp($this->getApp());
         }
 
-        // If element is not trackable, then we don't need to do anything with it
+        // if element is not trackable, then we don't need to do anything with it
         if (!TraitUtil::hasTrackableTrait($element)) {
-            return $element;
+            return;
         }
 
-        // Normalize the arguments, bring name out
-        if (is_string($args)) {
-            // passed as string
-            $args = [$args];
-        } elseif (!is_array($args) && $args !== null) {
-            throw (new Exception('Second argument must be array'))
-                ->addMoreInfo('arg2', $args);
-        } elseif (isset($args['desiredName'])) {
-            // passed as ['desiredName'=>'foo'];
-            $args[0] = $this->getUniqueElementName($args['desiredName']);
+        // normalize the arguments, bring name out
+        if (isset($args['desiredName'])) {
+            $name = $this->_uniqueElementName($args['desiredName']);
             unset($args['desiredName']);
         } elseif (isset($args['elementName'])) {
-            // passed as ['name'=>'foo'];
-            $args[0] = $args['elementName'];
+            $name = $args['elementName'];
             unset($args['elementName']);
-        } elseif (isset($element->elementId)) {
-            // element has an id already
-            $args[0] = $this->getUniqueElementName($element->elementId);
+        } elseif (($element->elementId ?? null) !== null) {
+            $name = $this->_uniqueElementName($element->elementId);
         } else {
-            // ask element on his preferred name, then make it unique.
-            $args[0] = $this->getUniqueElementName($element->getDesiredName());
+            $desiredName = $element->getDesiredName();
+            $name = $this->_uniqueElementName($desiredName);
         }
 
-        // Maybe element already exists
-        if (isset($this->elements[$args[0]])) {
+        if ($args !== []) {
+            throw (new Exception('Add args for DI are no longer supported'))
+                ->addMoreInfo('arg', $args);
+        }
+
+        // maybe element already exists
+        if (isset($this->elements[$name])) {
             throw (new Exception('Element with requested name already exists'))
                 ->addMoreInfo('element', $element)
-                ->addMoreInfo('name', $args[0])
+                ->addMoreInfo('name', $name)
                 ->addMoreInfo('this', $this)
                 ->addMoreInfo('arg2', $args);
         }
 
         $element->setOwner($this);
-        $element->elementId = $args[0];
-        if (TraitUtil::hasNameTrait($this)) {
-            $element->elementName = $this->_shorten($this->elementName . '_' . $element->elementId);
+        $element->elementId = $name;
+        if (TraitUtil::hasTrackableTrait($this) && TraitUtil::hasNameTrait($this) && TraitUtil::hasNameTrait($element)) {
+            $element->elementName = $this->_shorten($this->elementName ?? '', $element->elementId, $element->elementName ?? null); // @phpstan-ignore property.notFound
         }
+
         $this->elements[$element->elementId] = $element;
-
-        unset($args[0]);
-        unset($args['name']);
-        foreach ($args as $key => $arg) {
-            if ($arg !== null) {
-                $element->{$key} = $arg;
-            }
-        }
-
-        return $element;
     }
 
     /**
      * Remove child element if it exists.
      *
-     * @param string|object $elementId ID of the element
+     * @param string|object $elementId short name of the element
+     *
+     * @return $this
      */
     public function removeElement($elementId)
     {
@@ -148,7 +138,7 @@ trait ContainerTrait
         }
 
         if (!isset($this->elements[$elementId])) {
-            throw (new Exception('Could not remove child from parent. Instead of destroy() try using removeField / removeColumn / ..'))
+            throw (new Exception('Child element not found'))
                 ->addMoreInfo('parent', $this)
                 ->addMoreInfo('element', $elementId);
         }
@@ -160,35 +150,31 @@ trait ContainerTrait
 
     /**
      * Method used internally for shortening object names.
-     *
-     * @param string $desiredName desired name of new object
-     *
-     * @return string shortened name of new object
      */
-    protected function _shorten(string $desiredName): string
+    protected function _shorten(string $ownerName, string $elementId, ?string $elementName): string
     {
+        $desired = $elementName ?? $ownerName . '_' . $elementId;
+
         if (TraitUtil::hasAppScopeTrait($this)
-            && isset($this->getApp()->max_name_length)
-            && mb_strlen($desiredName) > $this->getApp()->max_name_length) {
-            /*
-             * Basic rules: hash is 10 character long (8+2 for separator)
-             * We need at least 5 characters on the right side. Total must not exceed
-             * max_name_length. First chop will be max-10, then chop size will increase by
-             * max-15
-             */
-            $len = mb_strlen($desiredName);
-            $left = $len - ($len - 10) % ($this->getApp()->max_name_length - 15) - 5;
-
-            $key = mb_substr($desiredName, 0, $left);
-            $rest = mb_substr($desiredName, $left);
-
-            if (!isset($this->getApp()->unique_hashes[$key])) {
-                $this->getApp()->unique_hashes[$key] = '_' . dechex(crc32($key));
+            && isset($this->getApp()->maxNameLength)
+            && mb_strlen($desired) > $this->getApp()->maxNameLength
+        ) {
+            if ($elementName !== null) {
+                throw (new Exception('Element has too long desired name'))
+                    ->addMoreInfo('name', $elementName);
             }
-            $desiredName = $this->getApp()->unique_hashes[$key] . '__' . $rest;
+
+            $left = mb_strlen($desired) + 35 - $this->getApp()->maxNameLength;
+            $key = mb_substr($desired, 0, $left);
+            $rest = mb_substr($desired, $left);
+
+            if (!isset($this->getApp()->uniqueNameHashes[$key])) {
+                $this->getApp()->uniqueNameHashes[$key] = '_' . md5($key);
+            }
+            $desired = $this->getApp()->uniqueNameHashes[$key] . '__' . $rest;
         }
 
-        return $desiredName;
+        return $desired;
     }
 
     /**

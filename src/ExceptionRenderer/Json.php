@@ -8,8 +8,8 @@ use Phlex\Core\Exception;
 
 class Json extends RendererAbstract
 {
-    /** @var array */
-    protected $json = [
+    /** @var array<string, mixed> */
+    protected array $json = [
         'success' => false,
         'code' => 0,
         'message' => '',
@@ -21,6 +21,7 @@ class Json extends RendererAbstract
         'previous' => [],
     ];
 
+    #[\Override]
     protected function processHeader(): void
     {
         $title = $this->getExceptionTitle();
@@ -32,6 +33,7 @@ class Json extends RendererAbstract
         $this->json['class'] = $class;
     }
 
+    #[\Override]
     protected function processParams(): void
     {
         if (!$this->exception instanceof Exception) {
@@ -47,6 +49,7 @@ class Json extends RendererAbstract
         }
     }
 
+    #[\Override]
     protected function processSolutions(): void
     {
         if (!$this->exception instanceof Exception) {
@@ -65,37 +68,39 @@ class Json extends RendererAbstract
         }
     }
 
+    #[\Override]
     protected function processStackTrace(): void
     {
-        $this->output .= <<<'HTML'
-            <span style="color:sandybrown">Stack Trace:</span>
-
-            HTML;
+        $this->output .= '<span style="color: sandybrown;">Stack Trace:</span>' . "\n";
 
         $this->processStackTraceInternal();
     }
 
+    #[\Override]
     protected function processStackTraceInternal(): void
     {
-        $in_atk = true;
+        $inPhlex = true;
         $trace = $this->getStackTrace(false);
         foreach ($trace as $index => $call) {
-            $call = $this->parseStackTraceCall($call);
+            $call = $this->parseStackTraceFrame($call);
 
-            $escape_frame = false;
-            if ($in_atk && !preg_match('~atk4[/\\\\][^/\\\\]+[/\\\\]src[/\\\\]~', $call['file'])) {
-                $escape_frame = true;
-                $in_atk = false;
+            $escapeFrame = false;
+            if ($inPhlex && $call['file'] !== '' && !preg_match('~phlex[/\\\][^/\\\]+[/\\\]src[/\\\]~', $call['file'])) {
+                $escapeFrame = true;
+                $inPhlex = false;
             }
 
-            if ($escape_frame) {
-                $call['args'] = array_map(fn ($arg) => static::toSafeString($arg), $call['args']);
+            if ($escapeFrame) {
+                $call['args'] = array_map(static function ($arg) {
+                    return static::toSafeString($arg);
+                }, $call['args']);
             }
 
             $this->json['stack'][] = $call;
         }
     }
 
+    #[\Override]
     protected function processPreviousException(): void
     {
         if (!$this->exception->getPrevious()) {
@@ -108,18 +113,20 @@ class Json extends RendererAbstract
         $this->json['previous'] = $previous->json;
     }
 
-    protected function parseStackTraceCall($call): array
+    #[\Override]
+    protected function parseStackTraceFrame(array $frame): array
     {
         return [
-            'line' => $call['line'] ?? '',
-            'file' => $call['file'] ?? '',
-            'class' => $call['class'] ?? null,
-            'object' => ($call['object'] ?? null) !== null ? ($call['object']->elementName ?? get_class($call['object'])) : null,
-            'function' => $call['function'] ?? null,
-            'args' => $call['args'] ?? [],
+            'line' => $frame['line'] ?? '',
+            'file' => $frame['file'] ?? '',
+            'class' => $frame['class'] ?? null,
+            'object' => ($frame['object'] ?? null) !== null ? static::toSafeString($frame['object']) : null,
+            'function' => $frame['function'] ?? null,
+            'args' => $frame['args'] ?? [],
         ];
     }
 
+    #[\Override]
     public function __toString(): string
     {
         try {
@@ -131,7 +138,7 @@ class Json extends RendererAbstract
                 'code' => $this->exception->getCode(),
                 'message' => 'Error during json renderer: ' . $this->exception->getMessage(),
                 // avoid translation
-                //'message'  => $this->_($this->exception->getMessage()),
+                // 'message' => $this->_($this->exception->getMessage()),
                 'title' => get_class($this->exception),
                 'class' => get_class($this->exception),
                 'params' => [],

@@ -1,26 +1,21 @@
-<phpunit bootstrap="vendor/autoload.php" colors="true" stderr="true">
-    <php>
-        <var name="DB_DSN" value="sqlite::memory:" />
-        <var name="DB_USER" value="" />
-        <var name="DB_PASSWD" value="" />
-        <var name="DB_DBNAME" value="" />
-    </php>
+<phpunit bootstrap="vendor/autoload.php" colors="true">
     <testsuites>
         <testsuite name="tests">
             <directory>tests</directory>
         </testsuite>
     </testsuites>
-    <coverage processUncoveredFiles="true">
+    <extensions>
+        <bootstrap class="Ergebnis\PHPUnit\SlowTestDetector\Extension" />
+    </extensions>
+    <source>
         <include>
-            <directory suffix=".php">src</directory>
+            <directory>src</directory>
+            <directory>tests</directory>
         </include>
-        <exclude>
-            <file>src/AtkPhpunit/ResultPrinter.php</file>
-            <file>src/AtkPhpunit/ExceptionWrapper.php</file>
-            <file>src/AtkPhpunit/TestCase.php</file>
-        </exclude>
+    </source>
+    <coverage>
         <report>
-            <clover outputFile="build/logs/clover.xml" />
+            <php outputFile="coverage/phpunit.cov" />
         </report>
     </coverage>
 </phpunit>

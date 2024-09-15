@@ -1,77 +1,68 @@
-parameters:
-    level: 2
-    paths:
-        - ./
-    excludePaths:
-        - cache/
-        - build/
-        - vendor/
+includes:
+    - phar://phpstan.phar/conf/bleedingEdge.neon
 
-    # TODO review once we drop PHP 7.x support
-    treatPhpDocTypesAsCertain: false
+parameters:
+    level: 6
+    checkMissingOverrideMethodAttribute: true
+    paths:
+        - .
+    excludePaths:
+        - vendor
 
     ignoreErrors:
-        - '~^Unsafe usage of new static\(\)\.$~'
+        # relax strict rules
+        - '~^Only booleans are allowed in .+, .+ given( on the (left|right) side)?\.$~'
+        - '~^Variable (static )?(property access|method call) on .+\.$~'
+
+        # fix unresolveable atk4/ui \Phlex\Ui\App class
+        - '~^(.+(?<!\w)Phlex\\Ui\\App(?!\w).+|Call to an undefined method .+::(issetApp|getApp)\(\)\.)$~'
 
         -
-            message: '~^Extending PHPStan\\Reflection\\Annotations\\AnnotationMethodReflection is not covered by backward compatibility promise\. The class might change in a minor PHPStan version\.$~'
-            path: 'src/Hintable/Phpstan/WrapMethodReflection.php'
+            path: 'tests/DynamicMethodTraitTest.php'
+            identifier: method.notFound
+            message: '~^Call to an undefined method Phlex\\Core\\Tests\\(DynamicMethodMock|DynamicMethodWithoutHookMock)::\w+\(\)\.$~'
+            count: 10
+
+        # remove once PHPUnit 9.x support is removed
+        -
+            path: 'src/Phpunit/TestCase.php'
+            identifier: class.notFound
+            message: '~^Access to constant (STATUS_INCOMPLETE|STATUS_SKIPPED) on an unknown class PHPUnit\\Runner\\BaseTestRunner\.$~'
+            count: 2
+        -
+            path: 'src/Phpunit/TestCase.php'
+            identifier: method.notFound
+            message: '~^Call to an undefined method Phlex\\Core\\Phpunit\\TestCase::(getName|getStatus|getTestResultObject)\(\)\.$~'
+            count: 5
+        -
+            path: 'src/Phpunit/TestCase.php'
+            identifier: staticMethod.notFound
+            message: '~^Call to an undefined static method PHPUnit\\Util\\Test::(getLinesToBeCovered|getLinesToBeUsed|parseTestMethodAnnotations)\(\)\.$~'
+            count: 3
+        -
+            path: 'src/Phpunit/TestCase.php'
+            identifier: method.nonObject
+            message: '~^Cannot call method (className|methodName)\(\) on array<int, string>\|PHPUnit\\Metadata\\Metadata\.$~'
+            count: 2
+        -
+            path: 'tests/HookTraitTest.php'
+            identifier: method.notFound
+            message: '~^Call to an undefined method Phlex\\Core\\Tests\\HookTraitTest::getName\(\)\.$~'
+            count: 2
+        -
+            path: 'tests/Phpunit/TestCaseTest.php'
+            identifier: method.notFound
+            message: '~^Call to an undefined method Phlex\\Core\\Tests\\Phpunit\\TestCaseTest::getStatus\(\)\.$~'
             count: 1
         -
-            message: '~^Calling PHPStan\\Reflection\\Annotations\\AnnotationMethodReflection::__construct\(\) is not covered by backward compatibility promise\. The method might change in a minor PHPStan version\.$~'
-            path: 'src/Hintable/Phpstan/WrapMethodReflection.php'
+            path: 'tests/Phpunit/TestCaseTest.php'
+            identifier: class.notFound
+            message: '~^Access to constant STATUS_INCOMPLETE on an unknown class PHPUnit\\Runner\\BaseTestRunner\.$~'
             count: 1
+
+        # https://github.com/phpstan/phpstan/issues/10150
         -
-            message: '~^Extending PHPStan\\Reflection\\Annotations\\AnnotationPropertyReflection is not covered by backward compatibility promise\. The class might change in a minor PHPStan version\.$~'
-            path: 'src/Hintable/Phpstan/WrapPropertyReflection.php'
-            count: 1
-        -
-            message: '~^Calling PHPStan\\Reflection\\Annotations\\AnnotationPropertyReflection::__construct\(\) is not covered by backward compatibility promise\. The method might change in a minor PHPStan version\.$~'
-            path: 'src/Hintable/Phpstan/WrapPropertyReflection.php'
-            count: 1
-            
-        # fix unresolved \Phlex\Ui\App class
-        - '~^(.+(?<!\w)Phlex\\Ui\\App.+|Call to an undefined method .+::(issetApp|getApp)\(\)\.)$~'
-
-        # for AppScopeTrait.php
-        - '~^Call to an undefined method .+::setApp\(\)\.$~'
-        - '~^Access to an undefined property .+::\$_appScopeTrait\.$~'
-        - '~^Access to an undefined property .+::\$_app\.$~'
-        - '~^Call to an undefined method .+::isInitialized\(\)\.$~'
-        # for ContainerTrait.php
-        - '~^Call to an undefined method .+::removeElement\(\)\.$~'
-        # for DiContainerTrait.php
-        - '~^Call to an undefined method .+::setDefaults\(\)\.$~'
-        # for HookTrait.php
-        - '~^Call to an undefined method .+::onHook\(\)\.$~'
-        - '~^Call to an undefined method .+::removeHook\(\)\.$~'
-        - '~^Call to an undefined method .+::hookHasCallbacks\(\)\.$~'
-        - '~^Call to an undefined method .+::hook\(\)\.$~'
-        # for InitializerTrait.php
-        - '~^Call to an undefined method .+::initialize\(\)\.$~'
-        # for NameTrait.php
-        - '~^Access to an undefined property .+::\$elementName\.$~'
-        # for TrackableTrait.php
-        - '~^Call to an undefined method .+::issetOwner\(\)\.$~'
-        - '~^Call to an undefined method .+::setOwner\(\)\.$~'
-        - '~^Call to an undefined method .+::unsetOwner\(\)\.$~'
-        - '~^Call to an undefined method .+::getDesiredName\(\)\.$~'
-        - '~^Access to an undefined property .+::\$elementId\.$~'
-
-        - '~^Cannot access property \$(foo|def) on array\|object\.$~'
-        - '~^Call to an undefined method Phlex\\Core\\Tests\\(DynamicMethodMock|DynamicMethodWithoutHookMock|GlobalMethodObjectMock)::\w+\(\)\.$~'
-
-        # PHPStan issue https://github.com/phpstan/phpstan/issues/4167
-        - '~^Variable \$brokenBy in PHPDoc tag @var does not match assigned variable \$ret\.$~'
-
-    # some extra rules
-    checkAlwaysTrueCheckTypeFunctionCall: true
-    checkAlwaysTrueInstanceof: true
-    checkAlwaysTrueStrictComparison: true
-    checkExplicitMixedMissingReturn: true
-    checkFunctionNameCase: true
-# TODO    checkMissingClosureNativeReturnTypehintRule: true
-    reportMaybesInMethodSignatures: true
-    reportStaticMethodSignatures: true
-    checkTooWideReturnTypesInProtectedAndPublicMethods: true
-    checkMissingIterableValueType: false
+            path: 'src/DebugTrait.php'
+            identifier: method.missingOverride
+            message: '~^Method Phlex\\Core\\Tests\\DebugPsrMock::\w+\(\) overrides method Psr\\Log\\LoggerInterface::\w+\(\) but is missing the #\[\\Override\] attribute\.$~'
+            count: 9

@@ -18,18 +18,21 @@ trait CollectionTrait
     /**
      * Use this method trait like this:.
      *
-     * function addField($name, $definition) {
+     * function addField(string $name, $definition)
+     * {
      *     $field = Field::fromSeed($seed);
      *
-     *     return $this->_addIntoCollection($name, $field, 'fields');
+     *     $this->_addIntoCollection($name, $field, 'fields');
+     *
+     *     return $field;
      * }
      *
      * @param string $collection property name
      */
-    public function _addIntoCollection(string $elementId, object $item, string $collection): object
+    protected function _addIntoCollection(string $elementId, object $item, string $collection): void
     {
         if (!isset($this->{$collection}) || !is_array($this->{$collection})) {
-            throw (new Exception('Collection does NOT exist'))
+            throw (new Exception('Collection does not exist'))
                 ->addMoreInfo('collection', $collection);
         }
 
@@ -40,33 +43,40 @@ trait CollectionTrait
         }
 
         if ($this->_hasInCollection($elementId, $collection)) {
-            throw (new Exception('Element with the same name already exist in the collection'))
+            throw (new Exception('Element with the same name already exists in the collection'))
                 ->addMoreInfo('collection', $collection)
                 ->addMoreInfo('element', $elementId);
         }
-        $this->{$collection}[$elementId] = $item;
 
-        // Carry on reference to application if we have appScopeTraits set
-        if (TraitUtil::hasAppScopeTrait($this) && TraitUtil::hasAppScopeTrait($item)) {
+        // carry on reference to application if we have appScopeTraits set
+        if ((TraitUtil::hasAppScopeTrait($this) && TraitUtil::hasAppScopeTrait($item))
+            && (!$item->issetApp() || $item->getApp() !== $this->getApp())
+        ) {
             $item->setApp($this->getApp());
         }
 
-        // Calculate long "name" but only if both are trackables
+        // calculate long "name" but only if both are trackables
         if (TraitUtil::hasTrackableTrait($item)) {
             $item->elementId = $elementId;
             $item->setOwner($this);
-            if (TraitUtil::hasTrackableTrait($this)) {
-                $item->elementName = $this->_shorten_ml($this->elementName . '-' . $collection . '_' . $elementId);
+            if (TraitUtil::hasTrackableTrait($this) && TraitUtil::hasNameTrait($this) && TraitUtil::hasNameTrait($item)) {
+                $item->elementName = $this->_shortenMl($this->elementName ?? '', $collection, $item->elementId, $item->elementName ?? null); // @phpstan-ignore property.notFound
             }
         }
+
+        $this->{$collection}[$elementId] = $item;
 
         if (TraitUtil::hasInitializerTrait($item)) {
             if (!$item->isInitialized()) {
-                $item->initialize();
+                try {
+                    $item->initialize();
+                } catch (\Throwable $e) {
+                    unset($this->{$collection}[$elementId]);
+
+                    throw $e;
+                }
             }
         }
-
-        return $item;
     }
 
     /**
@@ -74,13 +84,14 @@ trait CollectionTrait
      *
      * @param string $collection property name
      */
-    public function _removeFromCollection(string $elementId, string $collection): void
+    protected function _removeFromCollection(string $elementId, string $collection): void
     {
         if (!$this->_hasInCollection($elementId, $collection)) {
-            throw (new Exception('Element is NOT in the collection'))
+            throw (new Exception('Element is not in the collection'))
                 ->addMoreInfo('collection', $collection)
                 ->addMoreInfo('element', $elementId);
         }
+
         unset($this->{$collection}[$elementId]);
     }
 
@@ -90,7 +101,7 @@ trait CollectionTrait
      *
      * @param string $collectionName property name to be cloned
      */
-    public function _cloneCollection(string $collectionName): void
+    protected function _cloneCollection(string $collectionName): void
     {
         $this->{$collectionName} = array_map(function ($item) {
             $item = clone $item;
@@ -107,65 +118,56 @@ trait CollectionTrait
      *
      * @param string $collection property name
      */
-    public function _hasInCollection(string $elementId, string $collection): bool
+    protected function _hasInCollection(string $elementId, string $collection): bool
     {
-        $data = $this->{$collection};
-
-        return isset($data[$elementId]);
+        return isset($this->{$collection}[$elementId]);
     }
 
     /**
      * @param string $collection property name
      */
-    public function _getFromCollection(string $elementId, string $collection): object
+    protected function _getFromCollection(string $elementId, string $collection): object
     {
-        if (!$this->_hasInCollection($elementId, $collection)) {
-            throw (new Exception('Element is NOT in the collection'))
+        $res = $this->{$collection}[$elementId] ?? null;
+        if ($res === null) {
+            throw (new Exception('Element is not in the collection'))
                 ->addMoreInfo('collection', $collection)
                 ->addMoreInfo('name', $elementId);
         }
 
-        return $this->{$collection}[$elementId];
+        return $res;
     }
 
     /**
-     * Method used internally for shortening object names
+     * Method used internally for shortening object names.
+     *
      * Identical implementation to ContainerTrait::_shorten.
-     *
-     * @param string $desired desired name of the object
-     *
-     * @return string shortened name
      */
-    protected function _shorten_ml(string $desired): string
+    protected function _shortenMl(string $ownerName, string $collectionName, string $elementId, ?string $elementName): string
     {
+        $ownerName .= '-' . $collectionName;
+
+        if (TraitUtil::hasContainerTrait($this)) {
+            return $this->_shorten($ownerName, $elementId, $elementName); // @phpstan-ignore method.notFound
+        }
+
         // ugly hack to deduplicate code
-        $collectionTraitHelper = \Closure::bind(function () {
-            $factory = Factory::getInstance();
-            if (!property_exists($factory, 'collectionTraitHelper')) {
-                // @phpstan-ignore-next-line
-                $factory->collectionTraitHelper = new class() {
-                    use AppScopeTrait;
-                    use ContainerTrait;
+        $collectionTraitHelper = new class() {
+            use AppScopeTrait;
+            use ContainerTrait;
 
-                    public function shorten(?object $app, string $desired): string
-                    {
-                        $this->_appScopeTrait = $app !== null;
+            public function shorten(?object $app, string $ownerName, string $elementId, ?string $elementName): string
+            {
+                try {
+                    $this->setApp($app);
 
-                        try {
-                            $this->setApp($app);
-
-                            return $this->_shorten($desired);
-                        } finally {
-                            $this->_app = null; // important for GC
-                        }
-                    }
-                };
+                    return $this->_shorten($ownerName, $elementId, $elementName);
+                } finally {
+                    $this->_app = null; // important for GC
+                }
             }
+        };
 
-            // @phpstan-ignore-next-line
-            return $factory->collectionTraitHelper;
-        }, null, Factory::class)();
-
-        return $collectionTraitHelper->shorten(TraitUtil::hasAppScopeTrait($this) ? $this->getApp() : null, $desired);
+        return $collectionTraitHelper->shorten(TraitUtil::hasAppScopeTrait($this) ? $this->getApp() : null, $ownerName, $elementId, $elementName);
     }
 }

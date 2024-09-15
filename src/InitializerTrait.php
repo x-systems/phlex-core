@@ -5,44 +5,47 @@ declare(strict_types=1);
 namespace Phlex\Core;
 
 /**
- * Object with this trait will have it's init() method executed
+ * Object with this trait will have it's doInitialize() method executed
  * automatically when initialized through add().
  */
 trait InitializerTrait
 {
-    /**
-     * To make sure you have called parent::init() properly.
-     *
-     * @var bool
-     */
-    protected $initialized = false;
+    private bool $_initialized = false;
 
-    /**
-     * Initialize object.
-     */
     public function initialize(): void
     {
-        // assert doInitialize() method is not declared as public, ie. not easily directly callable by the user
+        // assert initialize() method is not declared as public, ie. not easily directly callable by the user
         if ((new \ReflectionMethod($this, 'doInitialize'))->getModifiers() & \ReflectionMethod::IS_PUBLIC) {
             throw new Exception('doInitialize method must have protected visibility');
         }
 
-        if ($this->initialized) {
-            throw (new Exception('Attempting to initialize twice'))
+        if ($this->isInitialized()) {
+            throw (new Exception('Object already initialized'))
                 ->addMoreInfo('this', $this);
         }
-
-        $this->initialized = true;
+        $this->_initialized = true;
 
         $this->doInitialize();
+
+        $this->assertIsInitialized();
     }
 
-    protected function doInitialize(): void
-    {
-    }
+    /**
+     * Perform object specific initialization. Always call parent::doInitialize(). Do not call directly.
+     *
+     * #[\Override]
+     */
+    protected function doInitialize(): void {}
 
     public function isInitialized(): bool
     {
-        return $this->initialized;
+        return $this->_initialized;
+    }
+
+    public function assertIsInitialized(): void
+    {
+        if (!$this->isInitialized()) {
+            throw new Exception('Object was not initialized');
+        }
     }
 }

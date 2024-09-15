@@ -37,7 +37,7 @@ class AssertSamePhpstanTypeRule implements Rule
     private function hasTrait(string $class, string $traitName): bool
     {
         if (!isset(self::$_hasTraitMap[$class][$traitName])) {
-            $getUsesFunc = function (string $trait) use (&$getUsesFunc): array {
+            $getUsesFunc = static function (string $trait) use (&$getUsesFunc): array {
                 $uses = class_uses($trait);
                 foreach ($uses as $use) {
                     $uses += $getUsesFunc($use);

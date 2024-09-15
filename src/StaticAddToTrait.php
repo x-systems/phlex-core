@@ -4,23 +4,14 @@ declare(strict_types=1);
 
 namespace Phlex\Core;
 
-/**
- * Trait StaticAddToTrait.
- *
- * Intended to be always used with InjectableTrait trait.
- */
 trait StaticAddToTrait
 {
     use InjectableTrait;
 
     /**
-     * Check this property to see if trait is present in the object.
-     *
-     * @var bool
+     * @param array<mixed> $addArgs
      */
-    public $_staticAddToTrait = true;
-
-    private static function _addTo_add(object $parent, object $object, array $addArgs, bool $skipAdd = false): void
+    private static function _addToAdd(object $parent, object $object, array $addArgs, bool $skipAdd = false): void
     {
         if (!$skipAdd) {
             $parent->add($object, ...$addArgs);
@@ -38,15 +29,16 @@ trait StaticAddToTrait
      * $crud = $app->add(['Crud', 'displayFields' => ['name']]);
      *   but the first one design pattern is strongly recommended as it supports refactoring.
      *
-     * @param array $seed
+     * @param array<mixed> $defaults
+     * @param array<mixed> $addArgs
      *
      * @return static
      */
-    public static function addTo(object $parent, $seed = [], array $addArgs = [], bool $skipAdd = false)// :static supported by PHP8+
+    public static function addTo(object $parent, array $defaults = [], array $addArgs = [], bool $skipAdd = false)// :static supported by PHP8+
     {
-        $object = static::fromSeed([static::class], $seed);
+        $object = static::fromSeed([static::class], $defaults);
 
-        self::_addTo_add($parent, $object, $addArgs, $skipAdd);
+        self::_addToAdd($parent, $object, $addArgs, $skipAdd);
 
         return $object;
     }
@@ -54,7 +46,8 @@ trait StaticAddToTrait
     /**
      * Same as addTo(), but the first element of seed specifies a class name instead of static::class.
      *
-     * @param array|object $seed the first element specifies a class name, other elements are seed
+     * @param array<mixed>|object $seed    the first element specifies a class name, other elements are seed
+     * @param array<mixed>        $addArgs
      *
      * @return static
      */
@@ -62,7 +55,7 @@ trait StaticAddToTrait
     {
         $object = static::fromSeed($seed);
 
-        self::_addTo_add($parent, $object, $addArgs, $skipAdd);
+        self::_addToAdd($parent, $object, $addArgs, $skipAdd);
 
         return $object;
     }
@@ -70,15 +63,16 @@ trait StaticAddToTrait
     /**
      * Same as addToWithCl(), but the new object is not asserted to be an instance of this class.
      *
-     * @param array|object $seed the first element specifies a class name, other elements are seed
+     * @param array<mixed>|object $seed    the first element specifies a class name, other elements are seed
+     * @param array<mixed>        $addArgs
      *
      * @return static
      */
-    public static function addToWithClUnsafe(object $parent, $seed = [], array $addArgs = [], bool $skipAdd = false)// :self is too strict with unsafe behaviour
+    public static function addToWithClUnsafe(object $parent, $seed = [], array $addArgs = [], bool $skipAdd = false)
     {
         $object = static::fromSeedUnsafe($seed);
 
-        self::_addTo_add($parent, $object, $addArgs, $skipAdd);
+        self::_addToAdd($parent, $object, $addArgs, $skipAdd);
 
         return $object;
     }

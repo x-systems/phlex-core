@@ -4,142 +4,194 @@ declare(strict_types=1);
 
 namespace Phlex\Core\Tests;
 
-use Phlex\Core;
+use Phlex\Core\AppScopeTrait;
+use Phlex\Core\ContainerTrait;
+use Phlex\Core\Exception;
+use Phlex\Core\InitializerTrait;
+use Phlex\Core\NameTrait;
+use Phlex\Core\Phpunit\TestCase;
+use Phlex\Core\TrackableTrait;
 
-/**
- * @coversDefaultClass \Phlex\Core\ContainerTrait
- */
-class CollectionTraitTest extends \Phlex\Core\PHPUnit\TestCase
+class CollectionTraitTest extends TestCase
 {
-    /**
-     * Test constructor.
-     */
-    public function testBasic()
+    public function testBasic(): void
     {
-        try {
-            $m = new CollectionMock();
-            $m->addField('name');
+        $m = new CollectionMock();
+        $m->addField('name');
 
-            $this->assertTrue($m->hasField('name'));
+        self::assertTrue($m->hasField('name'));
 
-            $m->addField('surname', [CustomFieldMock::class]);
+        $m->addField('surname', [FieldMockCustom::class]);
 
-            $this->assertSame(CustomFieldMock::class, get_class($m->getField('surname')));
-            $this->assertTrue($m->getField('surname')->var);
+        self::assertSame(FieldMockCustom::class, get_class($m->getField('surname')));
+        /** @var FieldMockCustom $field */
+        $field = $m->getField('surname');
+        self::assertTrue($field->var);
 
-            $m->removeField('name');
-            $this->assertFalse($m->hasField('name'));
-        } catch (core\Exception $e) {
-            echo $e->getColorfulText();
-
-            throw $e;
-        }
+        $m->removeField('name');
+        self::assertFalse($m->hasField('name'));
     }
 
-    /**
-     * Test Trackable and AppScope.
-     */
-    public function testBasicWithApp()
+    public function testBasicWithApp(): void
     {
-        try {
-            $m = new CollectionMockWithApp();
-            $m->setApp(new class() {
-                public $elementName = 'app';
-                public $max_name_length = 20;
-            });
-            $m->elementName = 'form';
+        $m = new CollectionMockWithApp();
+        $m->setApp(new class() {
+            public string $elementName = 'app';
 
-            $surname = $m->addField('surname', [CustomFieldMock::class]);
+            public int $maxNameLength = 40;
+            /** @var array<string, string> */
+            public array $uniqueNameHashes = [];
+        });
+        $m->elementName = 'form';
 
-            $this->assertSame('app', $surname->getApp()->elementName);
+        /** @var FieldMockCustom $surnameField */
+        $surnameField = $m->addField('surname', [FieldMockCustom::class]);
 
-            $this->assertSame('form-fields_surname', $surname->elementName);
-            $this->assertSame($surname->getOwner(), $m);
+        self::assertSame('app', $surnameField->getApp()->elementName);
 
-            $long = $m->addField('very-long-and-annoying-name-which-will-be-shortened', [CustomFieldMock::class]);
-            $this->assertLessThan(21, strlen($long->elementName));
-        } catch (core\Exception $e) {
-            echo $e->getColorfulText();
+        self::assertSame('form-fields_surname', $surnameField->elementName);
+        self::assertSame($m, $surnameField->getOwner());
 
-            throw $e;
-        }
+        $longField = $m->addField('very-long-and-annoying-name-which-will-be-shortened', [FieldMockCustom::class]);
+        self::assertSame(40, strlen($longField->elementName));
+
+        $mWithContainerTrait = new class() extends CollectionMockWithApp {
+            use ContainerTrait {
+                _shorten as private __shorten;
+            }
+
+            protected function _shorten(string $ownerName, string $elementId, ?string $elementName): string
+            {
+                return $this->__shorten($ownerName, 'X' . $elementId, $elementName);
+            }
+        };
+        $mWithContainerTrait->setApp($m->getApp());
+        $mWithContainerTrait->elementName = 'form';
+
+        /** @var FieldMockCustom $surnameField2 */
+        $surnameField2 = $mWithContainerTrait->addField('surname', [FieldMockCustom::class]);
+
+        self::assertSame('form-fields_Xsurname', $surnameField2->elementName);
+        self::assertSame($mWithContainerTrait, $surnameField2->getOwner());
+    }
+
+    public function testCloneCollection(): void
+    {
+        $m = new CollectionMock();
+        $m->addField('a', [FieldMock::class]);
+        $m->addField('b', [FieldMockCustom::class]);
+
+        $mCloned = clone $m;
+        \Closure::bind(static fn () => $m->_cloneCollection('fields'), null, CollectionMock::class)();
+
+        self::assertNotSame($m->getField('a'), $mCloned->getField('a'));
+        self::assertNotSame($m->getField('b'), $mCloned->getField('b'));
+        self::assertSame('b', $m->getField('b')->elementId); // @phpstan-ignore property.notFound
+        self::assertSame('b', $mCloned->getField('b')->elementId); // @phpstan-ignore property.notFound
     }
 
     /**
      * Bad collection name.
      */
-    public function testException1()
+    public function testException1(): void
     {
-        $this->expectException(core\Exception::class);
         $m = new CollectionMock();
-        $m->_addIntoCollection('foo', (object) [], ''); // empty collection name
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Collection does not exist');
+        \Closure::bind(static fn () => $m->_addIntoCollection('foo', (object) [], ''), null, CollectionMock::class)(); // empty collection name
     }
 
     /**
      * Bad object name.
      */
-    public function testException2()
+    public function testException2(): void
     {
-        $this->expectException(core\Exception::class);
         $m = new CollectionMock();
-        $m->_addIntoCollection('', (object) [], 'fields'); // empty object name
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Empty name is not supported');
+        \Closure::bind(static fn () => $m->_addIntoCollection('', (object) [], 'fields'), null, CollectionMock::class)(); // empty object name
     }
 
     /**
      * Already existing object.
      */
-    public function testException3()
+    public function testException3(): void
     {
-        $this->expectException(core\Exception::class);
         $m = new CollectionMock();
-        $m->_addIntoCollection('foo', (object) [], 'fields');
-        $m->_addIntoCollection('foo', (object) [], 'fields'); // already exists
+        \Closure::bind(static fn () => $m->_addIntoCollection('foo', (object) [], 'fields'), null, CollectionMock::class)();
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Element with the same name already exists in the collection');
+        \Closure::bind(static fn () => $m->_addIntoCollection('foo', (object) [], 'fields'), null, CollectionMock::class)(); // already exists
     }
 
     /**
-     * Can not remove non existant object.
+     * Cannot get non existent object.
      */
-    public function testException4()
+    public function testException4(): void
     {
-        $this->expectException(core\Exception::class);
         $m = new CollectionMock();
-        $m->_removeFromCollection('dont_exist', 'fields'); // do not exist
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Element is not in the collection');
+        \Closure::bind(static fn () => $m->_getFromCollection('dont_exist', 'fields'), null, CollectionMock::class)(); // does not exist
     }
 
     /**
-     * Can not get non existant object.
+     * Cannot remove non existent object.
      */
-    public function testException5()
+    public function testException5(): void
     {
-        $this->expectException(core\Exception::class);
         $m = new CollectionMock();
-        $m->_getFromCollection('dont_exist', 'fields'); // do not exist
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Element is not in the collection');
+        \Closure::bind(static fn () => $m->_removeFromCollection('dont_exist', 'fields'), null, CollectionMock::class)(); // does not exist
     }
 
-    public function testClone()
+    public function testExceptionInInitMustNotAdd(): void
     {
+        $m = new CollectionMock();
+
+        $e = null;
         try {
-            $m = new CollectionMock();
-            $m->addField('name');
-            $m->addField('surname', [CustomFieldMock::class]);
+            $m->addField('foo', new class() extends FieldMock {
+                use InitializerTrait;
 
-            $c = clone $m;
-            $this->assertTrue($c->hasField('name'));
-            $this->assertSame(CustomFieldMock::class, get_class($c->getField('surname')));
-            $this->assertTrue($c->getField('surname')->var);
-        } catch (core\Exception $e) {
-            echo $e->getColorfulText();
-
-            throw $e;
+                protected function doInitialize(): void
+                {
+                    throw new Exception('from init');
+                }
+            });
+        } catch (Exception $e) {
         }
+        self::assertSame('from init', $e->getMessage());
+
+        self::assertFalse($m->hasField('foo'));
+        $m->addField('foo', new FieldMock());
+        self::assertTrue($m->hasField('foo'));
+    }
+
+    public function testClone(): void
+    {
+        $m = new CollectionMock();
+        $m->addField('name');
+        $m->addField('surname', [FieldMockCustom::class]);
+
+        $c = clone $m;
+        self::assertTrue($c->hasField('name'));
+        /** @var FieldMockCustom $field */
+        $field = $c->getField('surname');
+        self::assertSame(FieldMockCustom::class, get_class($field));
+        self::assertTrue($field->var);
     }
 }
 
-/**
- * Adds support for apptrait and trackable.
- */
 class CollectionMockWithApp extends CollectionMock
 {
-    use core\AppScopeTrait;
-    use core\TrackableTrait;
+    use AppScopeTrait;
+    use NameTrait;
+    use TrackableTrait;
 }

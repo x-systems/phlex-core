@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace Phlex\Core;
 
 /**
- * Special exception for HookTrait->breakHook method.
+ * Special exception for HookTrait::breakHook() method.
  */
 class HookBreaker extends Exception
 {
-    /**
-     * @var mixed
-     */
+    /** @var mixed */
     protected $returnValue;
 
     /**
@@ -20,6 +18,7 @@ class HookBreaker extends Exception
     public function __construct($returnValue)
     {
         parent::__construct();
+
         $this->returnValue = $returnValue;
     }
 

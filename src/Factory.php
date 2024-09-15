@@ -6,8 +6,9 @@ namespace Phlex\Core;
 
 class Factory
 {
-    /** @var Factory */
-    private static $_instance;
+    use WarnDynamicPropertyTrait;
+
+    private static ?Factory $_instance = null;
 
     protected function __construct()
     {
@@ -23,57 +24,11 @@ class Factory
         return self::$_instance;
     }
 
-    protected function printDeprecatedWarningWithTrace(string $msg): void // remove once not used within this class
-    {
-        static $traceRenderer = null;
-        if ($traceRenderer === null) {
-            $traceRenderer = new class(new Exception()) extends ExceptionRenderer\Html {
-                public function tryRelativizePath(string $path): string
-                {
-                    try {
-                        return $this->makeRelativePath($path);
-                    } catch (Exception $e) {
-                    }
-
-                    return $path;
-                }
-            };
-        }
-
-        ob_start();
-        debug_print_backtrace(\DEBUG_BACKTRACE_IGNORE_ARGS);
-        $trace = preg_replace('~^#0.+?\n~', '', ob_get_clean());
-        $trace = preg_replace_callback('~[^\n\[\]<>]+\.php~', fn ($matches) => $traceRenderer->tryRelativizePath($matches[0]), $trace);
-        // echo (new Exception($msg))->getHtml();
-        'trigger_error'($msg . (!class_exists(\PHPUnit\Framework\Test::class, false) ? "\n" . $trace : ''), \E_USER_DEPRECATED);
-    }
-
-    private function checkSeeFunc($seed): ?string
-    {
-        if (is_object($seed) || $seed === null) {
-            return null;
-        } elseif (!array_key_exists(0, $seed)) {
-            return null; // 'not defined' allow this method to be used to merge seeds without class name
-        } elseif ($seed[0] === null) {
-            return null;
-        } elseif (!is_string($seed[0])) {
-            return 'invalid type (' . (is_object($seed[0]) ? get_class($seed[0]) . ' (class wrapped in an array?)' : gettype($seed[0])) . ')';
-        } elseif (class_exists($seed[0])) {
-            return null;
-        }
-
-        // do not emit warnings for core tests:
-        // - some tests already tests for exception
-        // - we may later want to use this function for "mergeDefaults" (like _factory() below does)
-        foreach (debug_backtrace(\DEBUG_BACKTRACE_IGNORE_ARGS) as $cl) {
-            if (strpos($cl['class'] ?? '', 'Phlex\Core\Tests\\') === 0) {
-                return null;
-            }
-        }
-
-        return 'non-existing/non-autoloadable (' . $seed[0] . ')';
-    }
-
+    /**
+     * @param array<mixed>|object|null ...$seeds
+     *
+     * @return ($seeds is object ? object : array<mixed>)
+     */
     protected function _mergeSeeds(...$seeds)
     {
         // merge seeds but prefer seed over seed2
@@ -85,9 +40,7 @@ class Factory
         foreach ($seeds as $seedIndex => $seed) {
             if (is_object($seed)) {
                 if ($obj !== null) {
-                    continue; // legacy behaviour
-
-                    throw new \Exception('Two or more objects specified as seed.');
+                    throw new Exception('Two or more objects specified as seed');
                 }
 
                 $obj = $seed;
@@ -100,17 +53,16 @@ class Factory
                 continue;
             }
 
-            if ($this->checkSeeFunc($seed) !== null) {
-                // remove/do not accept other seed than object/array type after 2020-dec
-                // remove/do not accept seed with 1st argument other than valid class name (or null) after 2020-dec
-                $this->printDeprecatedWarningWithTrace(
-                    'Use of invalid/deprecated $seed' . $seedIndex . ' class name (' . $this->checkSeeFunc($seed) . '). Support will be removed shortly.'
-                );
-            }
-
-            if (!is_array($seed)) {
-                $seed = [$seed];
-            }
+            // check seed
+            if (!array_key_exists(0, $seed)) {
+                // allow this method to be used to merge seeds without class name
+            } elseif ($seed[0] === null) {
+                // pass
+            } elseif (!is_string($seed[0])) {
+                throw new Exception('Seed class type (' . get_debug_type($seed[0]) . ') must be string');
+            } /*elseif (!class_exists($seed[0])) {
+                throw new Exception('Seed class "' . $seed[0] . '" not found');
+            }*/
 
             foreach ($seed as $k => $v) {
                 if (is_int($k)) {
@@ -127,21 +79,21 @@ class Factory
 
         ksort($arguments, \SORT_NUMERIC);
         if ($obj === null) {
-            $arguments = $arguments + $injection;
+            $arguments += $injection;
 
             return $arguments;
         }
 
         unset($arguments[0]); // the first argument specifies a class name
         if (count($arguments) > 0) {
-            throw (new Exception('Constructor arguments can not be injected into existing object'))
+            throw (new Exception('Constructor arguments cannot be injected into existing object'))
                 ->addMoreInfo('object', $obj)
                 ->addMoreInfo('arguments', $arguments);
         }
 
         if (count($injection) > 0) {
             if (!TraitUtil::hasInjectableTrait($obj)) {
-                throw (new Exception('Property injection is possible only to objects that use \Phlex\Core\InjectableTrait trait'))
+                throw (new Exception('Property injection is possible only to objects that use Phlex\Core\InjectableTrait trait'))
                     ->addMoreInfo('object', $obj)
                     ->addMoreInfo('injection', $injection);
             }
@@ -158,47 +110,32 @@ class Factory
         return $obj;
     }
 
+    /**
+     * @param class-string      $className
+     * @param array<int, mixed> $ctorArgs
+     */
     protected function _newObject(string $className, array $ctorArgs): object
     {
         return new $className(...$ctorArgs);
     }
 
-    protected function _factory($seed, $defaults = []): object
+    /**
+     * @param array<mixed>|object $seed
+     * @param array<mixed>        $defaults
+     */
+    protected function _factory($seed, array $defaults): object
     {
-        if (is_object($defaults)) {
-            throw new Exception('Factory $defaults can not be an object');
+        if (!is_array($seed) && !is_object($seed)) { // @phpstan-ignore function.alreadyNarrowedType, booleanAnd.alwaysFalse
+            throw new Exception('Use of non-array (' . gettype($seed) . ') seed is not supported');
         }
 
-        if ($defaults === null) { // should be deprecated soon
-            $defaults = [];
-        }
-
-        if ($seed === null) { // should be deprecated soon
-            $seed = [];
-        }
-
-        if ((!is_array($seed) && !is_object($seed)) || (!is_array($defaults) && !is_object($defaults))) { // remove/do not accept other seed than object/array type after 2020-dec
-            $varName = !is_array($seed) && !is_object($seed) ? 'seed' : 'defaults';
-            $this->printDeprecatedWarningWithTrace(
-                'Use of non-array seed ($' . $varName . ' type = ' . gettype(${$varName}) . ') is deprecated and support will be removed shortly.'
-            );
-        }
-
-        if (is_array($defaults)) {
-            array_unshift($defaults, null); // insert argument 0
-        } else {
-            $defaults = [null, $defaults];
-        }
+        array_unshift($defaults, null); // insert argument 0
 
         if (is_object($seed)) {
             $defaults = $this->_mergeSeeds([], $defaults);
             $defaults[0] = $seed;
             $seed = $defaults;
         } else {
-            if (!is_array($seed)) {
-                $seed = [$seed];
-            }
-
             $seed = $this->_mergeSeeds($seed, $defaults);
         }
         unset($defaults);
@@ -230,7 +167,9 @@ class Factory
      *
      * To learn more about mechanics of factory trait, see documentation
      *
-     * @return object|array if at least one seed is an object, will return object
+     * @param array<mixed>|object|null ...$seeds
+     *
+     * @return ($seeds is object ? object : array<mixed>) if one seed is an object, that object is returned
      */
     final public static function mergeSeeds(...$seeds)
     {
@@ -247,12 +186,17 @@ class Factory
      *
      * To learn more about mechanics of factory trait, see documentation
      *
-     * @param array $defaults
+     * @param array<mixed>|object $seed
+     * @param array<mixed>        $defaults
      */
     final public static function factory($seed, $defaults = []): object
     {
-        if (func_num_args() > 2) { // prevent bad usage
+        if ('func_num_args'() > 2) { // prevent bad usage
             throw new \Error('Too many method arguments');
+        }
+
+        if ($defaults === null) { // @phpstan-ignore identical.alwaysFalse (should be deprecated soon)
+            $defaults = [];
         }
 
         return self::getInstance()->_factory($seed, $defaults);

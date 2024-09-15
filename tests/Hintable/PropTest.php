@@ -6,30 +6,31 @@ namespace Phlex\Core\Tests\Hintable;
 
 use Phlex\Core\Exception;
 use Phlex\Core\Hintable\Prop;
+use Phlex\Core\PHPUnit\TestCase;
 
 /**
  * @coversDefaultClass \Phlex\Hintable\MagicProp
  */
-class PropTest extends \Phlex\Core\PHPUnit\TestCase
+class PropTest extends TestCase
 {
     public function testPropName(): void
     {
         $mock = new PropMock();
-        $this->assertSame('pub', $mock->propName()->pub);
-        $this->assertSame('priv', $mock->propName()->priv);
-        $this->assertSame('undeclared', $mock->propName()->undeclared); // @phpstan-ignore-line
+        self::assertSame('pub', $mock->propName()->pub);
+        self::assertSame('priv', $mock->propName()->priv);
+        self::assertSame('undeclared', $mock->propName()->undeclared); // @phpstan-ignore-line
 
-        $this->assertSame('_pub_', $mock->pub);
-        $this->assertSame('_pub_', $mock->{$mock->propName()->pub});
+        self::assertSame('_pub_', $mock->pub);
+        self::assertSame('_pub_', $mock->{$mock->propName()->pub});
     }
 
     public function testPropNameFull(): void
     {
         $mock = new PropMock();
-        $this->assertSame(PropMock::class . '::pub', $mock->propNameFull()->pub);
-        $this->assertSame(PropMock::class . '::priv', $mock->propNameFull()->priv);
-        $this->assertSame(PropMock::class . '::undeclared', $mock->propNameFull()->undeclared); // @phpstan-ignore-line
-        $this->assertSame(\stdClass::class . '::undeclared2', Prop::propNameFull(\stdClass::class)->undeclared2); // @phpstan-ignore-line
+        self::assertSame(PropMock::class . '::pub', $mock->propNameFull()->pub);
+        self::assertSame(PropMock::class . '::priv', $mock->propNameFull()->priv);
+        self::assertSame(PropMock::class . '::undeclared', $mock->propNameFull()->undeclared); // @phpstan-ignore-line
+        self::assertSame(\stdClass::class . '::undeclared2', Prop::propNameFull(\stdClass::class)->undeclared2); // @phpstan-ignore-line
     }
 
     public function testMethodAccessException(): void
@@ -42,9 +43,9 @@ class PropTest extends \Phlex\Core\PHPUnit\TestCase
     public function testPhpstanPropNameStringType(): void
     {
         $mock = new PropMock();
-        $this->assertSame(21, $mock->pubInt);
-        $this->assertIsString($mock->propName()->pubInt);
+        self::assertSame(21, $mock->pubInt);
+        self::assertIsString($mock->propName()->pubInt);
         $this->expectException(\TypeError::class);
-        $this->assertSame('unused', chr($mock->propName()->pubInt)); // @phpstan-ignore-line
+        self::assertSame('unused', chr($mock->propName()->pubInt)); // @phpstan-ignore-line
     }
 }

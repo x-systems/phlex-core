@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Phlex\Core\Tests;
 
 use Phlex\Core\Exception;
+use Phlex\Core\ExceptionRenderer\RendererAbstract;
+use Phlex\Core\NameTrait;
+use Phlex\Core\Phpunit\TestCase;
 use Phlex\Core\TrackableTrait;
 
-/**
- * @coversDefaultClass \Phlex\Core\Exception
- */
-class ExceptionTest extends \Phlex\Core\PHPUnit\TestCase
+class ExceptionTest extends TestCase
 {
     public function testBasic(): void
     {
@@ -18,69 +18,85 @@ class ExceptionTest extends \Phlex\Core\PHPUnit\TestCase
             ->addMoreInfo('a1', 111)
             ->addMoreInfo('a2', 222);
 
-        // params
-        $this->assertSame(['a1' => 111, 'a2' => 222], $m->getParams());
+        self::assertSame(['a1' => 111, 'a2' => 222], $m->getParams());
 
-        $m = new Exception('PrevError');
+        $m = new Exception('PreviousError');
         $m = new Exception('TestIt', 123, $m);
         $m->addMoreInfo('a1', 222);
         $m->addMoreInfo('a2', 333);
 
-        // params
-        $this->assertSame(['a1' => 222, 'a2' => 333], $m->getParams());
+        self::assertSame(['a1' => 222, 'a2' => 333], $m->getParams());
 
         // get HTML
         $ret = $m->getHtml();
-        $this->assertMatchesRegularExpression('/TestIt/', $ret);
-        $this->assertMatchesRegularExpression('/PrevError/', $ret);
-        $this->assertMatchesRegularExpression('/333/', $ret);
+        self::assertMatchesRegularExpression('~TestIt~', $ret);
+        self::assertMatchesRegularExpression('~PreviousError~', $ret);
+        self::assertMatchesRegularExpression('~333~', $ret);
 
         // get colorful text
         $ret = $m->getColorfulText();
-        $this->assertMatchesRegularExpression('/TestIt/', $ret);
-        $this->assertMatchesRegularExpression('/PrevError/', $ret);
-        $this->assertMatchesRegularExpression('/333/', $ret);
+        self::assertMatchesRegularExpression('~TestIt~', $ret);
+        self::assertMatchesRegularExpression('~PreviousError~', $ret);
+        self::assertMatchesRegularExpression('~333~', $ret);
 
         // get JSON
         $ret = $m->getJson();
-        $this->assertMatchesRegularExpression('/TestIt/', $ret);
-        $this->assertMatchesRegularExpression('/PrevError/', $ret);
-        $this->assertMatchesRegularExpression('/333/', $ret);
+        self::assertMatchesRegularExpression('~TestIt~', $ret);
+        self::assertMatchesRegularExpression('~PreviousError~', $ret);
+        self::assertMatchesRegularExpression('~333~', $ret);
+    }
 
-        // to string
-        $ret = $m->toString(1);
-        $this->assertSame('1', $ret);
+    public function testToSafeString(): void
+    {
+        self::assertSame('1', RendererAbstract::toSafeString(1));
 
-        $ret = $m->toString('abc');
-        $this->assertSame('\'abc\'', $ret);
+        self::assertSame('\'abc\'', RendererAbstract::toSafeString('abc'));
 
-        $ret = $m->toString(new \stdClass());
-        $this->assertSame('stdClass', $ret);
+        self::assertSame(\stdClass::class, RendererAbstract::toSafeString(new \stdClass()));
+
+        self::assertSame(\DateTime::class, RendererAbstract::toSafeString(new \DateTime()));
+
+        self::assertSame(\Closure::class, RendererAbstract::toSafeString(static fn () => true));
+
+        $resource = opendir(__DIR__);
+        self::assertSame('resource (stream)', RendererAbstract::toSafeString($resource));
+        closedir($resource);
+        self::assertSame('resource (closed)', RendererAbstract::toSafeString($resource));
+
+        $a = new TrackableMock();
+        $a->elementId = 'foo';
+        self::assertSame(TrackableMock::class . ' (foo)', RendererAbstract::toSafeString($a));
+
+        $a = new TrackableMock();
+        self::assertSame(TrackableMock::class . ' ()', RendererAbstract::toSafeString($a));
 
         $a = new TrackableMock2();
-        $a->elementName = 'foo';
-        $ret = $m->toString($a);
-        $this->assertSame(TrackableMock2::class . ' (foo)', $ret);
+        $a->elementId = 'foo';
+        self::assertSame(TrackableMock2::class . ' (foo)', RendererAbstract::toSafeString($a));
+
+        $a = new TrackableMock2();
+        $a->name = 'foo';
+        self::assertSame(TrackableMock2::class . ' (foo)', RendererAbstract::toSafeString($a));
     }
 
     public function testMore(): void
     {
         $m = new \Exception('Classic Exception');
 
-        $m = new Exception('atk4 exception', 0, $m);
+        $m = new Exception('phlex exception', 0, $m);
         $m->setMessage('bumbum');
 
         $ret = $m->getHtml();
-        $this->assertMatchesRegularExpression('/Classic/', $ret);
-        $this->assertMatchesRegularExpression('/bumbum/', $ret);
+        self::assertMatchesRegularExpression('~Classic~', $ret);
+        self::assertMatchesRegularExpression('~bumbum~', $ret);
 
         $ret = $m->getColorfulText();
-        $this->assertMatchesRegularExpression('/Classic/', $ret);
-        $this->assertMatchesRegularExpression('/bumbum/', $ret);
+        self::assertMatchesRegularExpression('~Classic~', $ret);
+        self::assertMatchesRegularExpression('~bumbum~', $ret);
 
         $ret = $m->getJson();
-        $this->assertMatchesRegularExpression('/Classic/', $ret);
-        $this->assertMatchesRegularExpression('/bumbum/', $ret);
+        self::assertMatchesRegularExpression('~Classic~', $ret);
+        self::assertMatchesRegularExpression('~bumbum~', $ret);
     }
 
     public function testSolution(): void
@@ -89,13 +105,13 @@ class ExceptionTest extends \Phlex\Core\PHPUnit\TestCase
         $m->addSolution('One Solution');
 
         $ret = $m->getHtml();
-        $this->assertMatchesRegularExpression('/One Solution/', $ret);
+        self::assertMatchesRegularExpression('~One Solution~', $ret);
 
         $ret = $m->getColorfulText();
-        $this->assertMatchesRegularExpression('/One Solution/', $ret);
+        self::assertMatchesRegularExpression('~One Solution~', $ret);
 
         $ret = $m->getJson();
-        $this->assertMatchesRegularExpression('/One Solution/', $ret);
+        self::assertMatchesRegularExpression('~One Solution~', $ret);
     }
 
     public function testSolution2(): void
@@ -104,25 +120,48 @@ class ExceptionTest extends \Phlex\Core\PHPUnit\TestCase
             ->addSolution('1st Solution');
 
         $ret = $m->getColorfulText();
-        $this->assertMatchesRegularExpression('/1st Solution/', $ret);
+        self::assertMatchesRegularExpression('~1st Solution~', $ret);
 
         $m = (new Exception('Exception with solution'))
             ->addSolution('1st Solution')
             ->addSolution('2nd Solution');
 
         $ret = $m->getColorfulText();
-        $this->assertMatchesRegularExpression('/1st Solution/', $ret);
-        $this->assertMatchesRegularExpression('/2nd Solution/', $ret);
+        self::assertMatchesRegularExpression('~1st Solution~', $ret);
+        self::assertMatchesRegularExpression('~2nd Solution~', $ret);
+    }
+
+    public function testPhpunitSelfDescribing(): void
+    {
+        $m = (new Exception('My exception', 0))
+            ->addMoreInfo('x', 'foo')
+            ->addMoreInfo('y', ['bar' => 2.4, [], [[1]]]);
+
+        self::assertSame(
+            <<<'EOF'
+                Phlex\Core\Exception: My exception
+                  x: 'foo'
+                  y: [
+                      'bar': 2.4,
+                      0: [],
+                      1: [
+                          ...
+                        ]
+                    ]
+
+                EOF,
+            $m->toString()
+        );
     }
 
     public function testExceptionFallback(): void
     {
         $m = new ExceptionTestThrowError('test', 2);
-        $expectedFallbackText = '!! PHLEX CORE ERROR - EXCEPTION RENDER FAILED: '
+        $expectedFallbackText = '!! ATK4 CORE ERROR - EXCEPTION RENDER FAILED: '
             . ExceptionTestThrowError::class . '(2): test !!';
-        $this->assertSame($expectedFallbackText, $m->getHtml());
-        $this->assertSame($expectedFallbackText, $m->getColorfulText());
-        $this->assertSame(
+        self::assertSame($expectedFallbackText, $m->getHtml());
+        self::assertSame($expectedFallbackText, $m->getColorfulText());
+        self::assertSame(
             json_encode(
                 [
                     'success' => false,
@@ -147,20 +186,17 @@ class ExceptionTest extends \Phlex\Core\PHPUnit\TestCase
     }
 }
 
-// @codingStandardsIgnoreStart
 class TrackableMock2
 {
+    use NameTrait;
     use TrackableTrait;
 }
 
-// @codingStandardsIgnoreEnd
-
-// @codingStandardsIgnoreStart
 class ExceptionTestThrowError extends Exception
 {
+    #[\Override]
     public function getCustomExceptionTitle(): string
     {
         throw new \Exception('just to cover __string');
     }
 }
-// @codingStandardsIgnoreEnd

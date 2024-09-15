@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace Phlex\Core\Tests;
 
-use Phlex\Core;
+use Phlex\Core\ContainerTrait;
+use Phlex\Core\NameTrait;
 
 class ContainerMock
 {
-    use core\ContainerTrait;
-    use core\NameTrait;
+    use ContainerTrait;
+    use NameTrait;
 
-    public function getElementCount()
+    public function getElementCount(): int
     {
         return count($this->elements);
     }

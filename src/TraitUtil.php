@@ -9,7 +9,7 @@ namespace Phlex\Core;
 final class TraitUtil
 {
     /** @var array<class-string, array<string, bool>> */
-    private static $hasTraitCache = [];
+    private static $_hasTraitCache = [];
 
     private function __construct()
     {
@@ -25,43 +25,38 @@ final class TraitUtil
             $class = get_class($class);
         }
 
-        // prevent mass use for other than internal use then we can decide
-        //if we want to keep support this or replace with pure interfaces
-        if (!str_starts_with($traitName, 'Phlex\Core\\')) {
-            throw new Exception('Core::hasTrait is not indended for use with other than \Phlex\Core\* traits.');
-        }
+        if (!isset(self::$_hasTraitCache[$class][$traitName])) {
+            // prevent mass use for other than internal use then we can decide
+            // if we want to keep support this or replace with pure interfaces
+            if (!str_starts_with($traitName, 'Phlex\Core\\')) {
+                throw new Exception(self::class . '::hasTrait() method is not intended for use with other than Phlex\Core\* traits');
+            }
 
-        if (!isset(self::$hasTraitCache[$class][$traitName])) {
-            $getUsesFunc = function (string $trait) use (&$getUsesFunc): array {
-                $uses = class_uses($trait);
-                foreach ($uses as $use) {
-                    $uses += $getUsesFunc($use);
+            $parentClass = get_parent_class($class);
+            if ($parentClass !== false && self::hasTrait($parentClass, $traitName)) {
+                self::$_hasTraitCache[$class][$traitName] = true;
+            } else {
+                $hasTrait = false;
+                foreach (class_uses($class) as $useName) {
+                    if ($useName === $traitName || self::hasTrait($useName, $traitName)) {
+                        $hasTrait = true;
+
+                        break;
+                    }
                 }
 
-                return $uses;
-            };
-
-            $uses = [];
-            foreach (array_reverse(class_parents($class) ?: []) + [-1 => $class] as $class) {
-                $uses += $getUsesFunc($class);
+                self::$_hasTraitCache[$class][$traitName] = $hasTrait;
             }
-            $uses = array_unique($uses);
-
-            self::$hasTraitCache[$class][$traitName] = in_array($traitName, $uses, true);
         }
 
-        return self::$hasTraitCache[$class][$traitName];
+        return self::$_hasTraitCache[$class][$traitName];
     }
 
-    /*
-     * ConfigTrait - not used
-     * DebugTrait - not used
-     * DynamicMethodTrait - not used
-     * StaticAddToTrait - not used
-     * TranslatableTrait - not used
-     *
-     * QuickExceptionTrait - QuickException will be removed, not used outside QuickException class
-     */
+    // ConfigTrait - not used
+    // DebugTrait - not used
+    // DynamicMethodTrait - not used
+    // StaticAddToTrait - not used
+    // TranslatableTrait - not used
 
     public static function hasAppScopeTrait(object $class): bool
     {
@@ -97,14 +92,6 @@ final class TraitUtil
     public static function hasNameTrait(object $class): bool
     {
         return self::hasTrait($class, NameTrait::class);
-    }
-
-    /**
-     * Used in Ui\TableColumn\FilterModel\Generic only.
-     */
-    public static function hasSessionTrait(object $class): bool
-    {
-        return self::hasTrait($class, SessionTrait::class);
     }
 
     public static function hasTrackableTrait(object $class): bool

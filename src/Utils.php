@@ -19,15 +19,17 @@ final class Utils
      */
     public static function getReadableCaption(string $s): string
     {
-        // $s = 'this\\ _isNASA_MyBigBull shit_123\Foo';
-
         // first remove not allowed characters and uppercase words
-        $words = ucwords(preg_replace('/[^a-z0-9]+/i', ' ', $s));
+        $s = ucwords(preg_replace('~[^a-z\d]+~i', ' ', $s));
 
         // and then run regex to split camelcased words too
-        $words = array_map('trim', preg_split('/^[^A-Z\d]+\K|[A-Z\d][^A-Z\d]+\K/', $words, -1, \PREG_SPLIT_NO_EMPTY));
+        $s = array_map('trim', preg_split('~(?:^|[A-Z\d])[^A-Z\d]+\K~', $s, -1, \PREG_SPLIT_NO_EMPTY));
+        $s = implode(' ', $s);
 
-        return implode(' ', $words);
+        // replace "Id" with "ID"
+        $s = preg_replace('~(?<=^| )Id~', 'ID', $s);
+
+        return $s;
     }
 
     public static function resolveFromRegistry(array $registry, string $searchClass)

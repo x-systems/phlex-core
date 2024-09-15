@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Phlex\Core;
 
+use Phlex\Ui\Webpage;
+use PHPUnit\Framework\TestCase as PhpunitTestCase;
+
 /**
  * Typical software design will create the webpage scope. Most frameworks
  * relies on "static" properties, methods and classes. This does puts some
@@ -14,17 +17,8 @@ namespace Phlex\Core;
  */
 trait AppScopeTrait
 {
-    /**
-     * @internal to be removed in Jan 2021, keep until then to prevent wrong assignments
-     */
-    private $app;
-
-    /**
-     * Always points to current webpage.
-     *
-     * @var \Phlex\Ui\Webpage
-     */
-    private $_app;
+    /** @var QuietObjectWrapper<Webpage>|null */
+    private ?QuietObjectWrapper $_app = null;
 
     /**
      * When using mechanism for ContainerTrait, they inherit name of the
@@ -34,17 +28,13 @@ trait AppScopeTrait
      *
      * Unfortunately if those keys become too long it may be a problem,
      * so ContainerTrait contains a mechanism for auto-shortening the
-     * name based around max_name_length. The mechanism does only work
+     * name based around maxNameLength. The mechanism does only work
      * if AppScopeTrait is used, $app property is set and has a
-     * max_name_length defined.
+     * maxNameLength defined.
      *
-     * Minimum is 20
-     *
-     * See http://stackoverflow.com/a/9399615/1466341 for more info.
-     *
-     * @var int
+     * @var int<40, max>
      */
-    public $max_name_length = 60;
+    public int $maxNameLength = 60;
 
     /**
      * As more names are shortened, the substituted part is being placed into
@@ -54,66 +44,58 @@ trait AppScopeTrait
      * this functionality is not essential and excluded from traits. You
      * can find it in a test suite.
      *
-     * @var array
+     * @var array<string, string>
      */
-    public $unique_hashes = [];
+    public array $uniqueNameHashes = [];
 
-    private function assertInstanceOfApp(object $app): void
+    protected function assertInstanceOfApp(object $app): void
     {
-        // called from phpunit, allow to use/test this trait without \Phlex\Ui\Webpage class
-        if (class_exists(\PHPUnit\Framework\TestCase::class, false)) {
-            return;
-        }
+        if (!$app instanceof Webpage) {
+            // called from phpunit, allow to test this trait without Phlex\Ui\Webpage class
+            if (class_exists(PhpunitTestCase::class, false)) {
+                foreach (debug_backtrace(\DEBUG_BACKTRACE_IGNORE_ARGS) as $frame) {
+                    if (str_starts_with($frame['class'] ?? '', 'Phlex\Core\Tests\\')) {
+                        return;
+                    }
+                }
+            }
 
-        if (!$app instanceof \Phlex\Ui\Webpage) {
-            throw new Exception('App must be instance of \Phlex\Ui\App');
-        }
-    }
-
-    /**
-     * To be removed in Jan 2021.
-     */
-    private function assertNoDirectAppAssignment(): void
-    {
-        if ($this->app !== null) {
-            throw new Exception('App can not be assigned directly');
+            throw new Exception('App must be instance of Phlex\Ui\Webpage');
         }
     }
 
     public function issetApp(): bool
     {
-        $this->assertNoDirectAppAssignment();
-
         return $this->_app !== null;
     }
 
     /**
-     * @return \Phlex\Ui\Webpage
+     * @return Webpage
      */
     public function getApp()
     {
-        $this->assertNoDirectAppAssignment();
-        $this->assertInstanceOfApp($this->_app);
+        $app = $this->_app;
+        if ($app === null) {
+            throw new Exception('Webpage is not set');
+        }
 
-        return $this->_app;
+        return $app->get();
     }
 
     /**
-     * @param \Phlex\Ui\Webpage $app
+     * @param Webpage $app
      *
      * @return static
      */
     public function setApp(object $app)
     {
-        $this->assertNoDirectAppAssignment();
         $this->assertInstanceOfApp($app);
-        if ($this->issetApp() && $this->getApp() !== $app) {
-            if ($this->getApp()->catch_exceptions || $this->getApp()->always_run) { // allow to replace App created by AbstractView::initDefaultApp() - TODO fix
-                throw new Exception('App can not be replaced');
-            }
+
+        if ($this->issetApp()) {
+            throw new Exception('Webpage is already set');
         }
 
-        $this->_app = $app;
+        $this->_app = new QuietObjectWrapper($app);
 
         return $this;
     }
